@@ -2,11 +2,21 @@ from django.views.generic import ListView, DetailView, CreateView
 from django.urls import reverse_lazy
 from .models import Blog, Review, Comment
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
+from django.shortcuts import render, redirect
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
+
+
+
 
 class BlogListView(ListView):
     model = Blog
     template_name = 'blogapp/blog_list.html'
-
+    context_object_name = 'blogs'
 
 class BlogDetailView(DetailView):
     model = Blog
@@ -41,7 +51,7 @@ class ReviewCreateView(CreateView):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['pk']})
 
 
-class CommentCreateView(CreateView):
+class CommentCreateView(LoginRequiredMixin, CreateView):
     model = Comment
     fields = ['content']
     template_name = 'blogapp/comment_form.html'
@@ -53,3 +63,34 @@ class CommentCreateView(CreateView):
 
     def get_success_url(self):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['blog_pk']})
+
+
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('blogapp:blog_list')  # Redirige a la vista basada en clase de blog_list
+    else:
+        form = AuthenticationForm()
+    return render(request, 'registration/login.html', {'form': form})
+
+
+
+def signup_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()  # Crear el usuario
+            login(request, user)  # Iniciar sesión automáticamente después del registro
+            return redirect('blogapp:blog_list')  # Redirigir al listado de blogs
+        else:
+            print("Formulario no válido", form.errors)
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+
+
+

@@ -56,7 +56,7 @@ ROOT_URLCONF = 'blogproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['blogapp/templates/blogapp'],
+        'DIRS': [BASE_DIR / 'blogapp' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -123,3 +123,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# settings.py
+
+
+
+LOGIN_URL = 'blogapp:custom_login'
+LOGIN_REDIRECT_URL = 'blogapp:blog_list'
+LOGOUT_REDIRECT_URL = 'blogapp:blog_list'

@@ -55,9 +55,18 @@
   <span id="theme-icon" class="transition-transform duration-500 transform">🌞</span>
   <span id="theme-label" class="transition-opacity duration-500 ease-in-out">Modo Claro</span>
 </button>
-        {% if user.is_authenticated %}
-          <a href="{% url 'blogapp:add_blog' %}" class="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white font-medium py-2 px-4 rounded transition-all duration-500 ease-in-out">New Blog</a>
-        {% endif %}
+    {% if user.is_authenticated %}
+      <!-- Solo mostrado si el usuario está autenticado -->
+      <form action="{% url 'logout' %}" method="post" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Cerrar sesión</button>
+      </form>
+      <a href="{% url 'blogapp:add_blog' %}" class="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white font-medium py-2 px-4 rounded transition-all duration-500 ease-in-out">Nuevo Blog</a>
+    {% else %}
+      <!-- Solo mostrado si el usuario NO está autenticado -->
+      <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 dark:text-white font-medium py-2 px-4 rounded transition-all duration-500 ease-in-out">Iniciar Sesión</a>
+      <a href="{% url 'blogapp:signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white font-medium py-2 px-4 rounded transition-all duration-500 ease-in-out">Registrarse</a>
+    {% endif %}
       </div>
     </div>
   </nav>

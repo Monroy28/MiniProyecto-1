@@ -1,0 +1,22 @@
+{% extends 'blogapp/base.html' %}
+
+{% block content %}
+  <h2>Registrarse</h2>
+  
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}  <!-- Muestra el formulario -->
+    
+    {% if form.errors %}
+      <ul class="errors">
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <button type="submit">Crea cuenta</button>
+  </form>
+{% endblock %}s
