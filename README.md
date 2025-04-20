@@ -18,12 +18,12 @@ Este proyecto es una mejora sobre un blog base desarrollado con Django. El objet
 
 - Una reseña por usuario por blog.
 
- - Promedio de puntuación por entrada.
+- Promedio de puntuación por entrada.
 
 # 👨‍💻 Colaboradores
 
-José Monroy
+-José Monroy https://github.com/Monroy28
 
-Zairy Rodríguez
+-Zairy Rodríguez https://github.com/Ho5hid1ger
 
-Valentín Rodríguez
+-Valentín Rodríguez
