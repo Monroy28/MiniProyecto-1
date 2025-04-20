@@ -1,8 +1,8 @@
-#📝 Blog Mejorado con Django
+# 📝 Blog Mejorado con Django
 
 Este proyecto es una mejora sobre un blog base desarrollado con Django. El objetivo es aplicar buenas prácticas de desarrollo web, mejorar la experiencia del usuario, y extender funcionalidades clave, como autenticación, texto enriquecido, imágenes, validación de reseñas, estadísticas, y más.
 
-##🚀 Características Principales
+## 🚀 Características Principales
 
 ✅ Registro, inicio y cierre de sesión de usuarios.
 
@@ -20,7 +20,7 @@ Este proyecto es una mejora sobre un blog base desarrollado con Django. El objet
 
  - Promedio de puntuación por entrada.
 
-#👨‍💻 Colaboradores
+# 👨‍💻 Colaboradores
 
 José Monroy
 
