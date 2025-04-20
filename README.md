@@ -22,8 +22,8 @@ Este proyecto es una mejora sobre un blog base desarrollado con Django. El objet
 
 # 👨‍💻 Colaboradores
 
--José Monroy https://github.com/Monroy28
+- [José Monroy](https://github.com/Monroy28) 
 
--Zairy Rodríguez https://github.com/Ho5hid1ger
+- [Zairy Rodríguez](https://github.com/Ho5hid1ger)
 
 -Valentín Rodríguez
