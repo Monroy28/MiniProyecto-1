@@ -1,0 +1,15 @@
+# Archivos de base de datos
+db.sqlite3
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+
+# Archivos temporales
+*.log
+*.tmp
+*.bak
+
+# Configuración del entorno (si usas virtualenv)
+env/
+venv/

@@ -6,8 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
+
 
 
 
@@ -26,7 +25,7 @@ class BlogDetailView(DetailView):
 class BlogCreateView(LoginRequiredMixin, CreateView):
     model = Blog
     fields = ['title', 'content']
-    template_name = 'blog_form.html'
+    template_name = 'blogapp/blog_form.html'
 
     def form_valid(self, form):
         form.instance.author = self.request.user
