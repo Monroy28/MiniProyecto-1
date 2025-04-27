@@ -24,7 +24,7 @@ class BlogDetailView(DetailView):
 
 class BlogCreateView(LoginRequiredMixin, CreateView):
     model = Blog
-    fields = ['title', 'content']
+    fields = ['title', 'content', 'image']
     template_name = 'blogapp/blog_form.html'
 
     def form_valid(self, form):
