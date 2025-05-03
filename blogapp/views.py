@@ -6,6 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
+from .forms import ReviewForm
 
 
 
@@ -20,6 +21,12 @@ class BlogListView(ListView):
 class BlogDetailView(DetailView):
     model = Blog
     template_name = 'blogapp/blog_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        blog = self.get_object()
+        context['average'] = round(blog.average_rating(), 1)
+        return context
 
 
 class BlogCreateView(LoginRequiredMixin, CreateView):
@@ -36,9 +43,9 @@ class BlogCreateView(LoginRequiredMixin, CreateView):
 
 
 
-class ReviewCreateView(CreateView):
+class ReviewCreateView(LoginRequiredMixin, CreateView):
     model = Review
-    fields = ['rating', 'comment']
+    form_class = ReviewForm  # Aquí usas el formulario personalizado
     template_name = 'blogapp/review_form.html'
 
     def form_valid(self, form):
@@ -48,6 +55,12 @@ class ReviewCreateView(CreateView):
 
     def get_success_url(self):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['pk']})
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['blog'] = Blog.objects.get(pk=self.kwargs['pk'])  # obtiene el blog actual
+        return kwargs
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
