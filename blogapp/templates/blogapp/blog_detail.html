@@ -1,5 +1,12 @@
 {% extends 'blogapp/base.html' %}
 {% block content %}
+{% if messages %}
+  {% for message in messages %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
 
   <article class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
     <h1 class="text-3xl font-bold mb-2">{{ object.title }}</h1>

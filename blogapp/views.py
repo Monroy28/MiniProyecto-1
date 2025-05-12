@@ -7,6 +7,7 @@ from django.contrib.auth import login
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import ReviewForm
+from django.shortcuts import get_object_or_404
 
 
 
@@ -43,24 +44,42 @@ class BlogCreateView(LoginRequiredMixin, CreateView):
 
 
 
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.views.generic.edit import CreateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Review
+from .forms import ReviewForm
+
 class ReviewCreateView(LoginRequiredMixin, CreateView):
     model = Review
-    form_class = ReviewForm  # Aquí usas el formulario personalizado
+    form_class = ReviewForm
     template_name = 'blogapp/review_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        blog_id = self.kwargs['pk']
+        user = self.request.user
+        if Review.objects.filter(blog_id=blog_id, reviewer=user).exists():
+            messages.error(request, "Ya has enviado una reseña para este blog.")
+            return redirect('blogapp:blog_detail', pk=blog_id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['blog'] = get_object_or_404(Blog, pk=self.kwargs['pk'])  # 👈 también pasamos el blog
+        return kwargs
 
     def form_valid(self, form):
         form.instance.reviewer = self.request.user
         form.instance.blog_id = self.kwargs['pk']
+        messages.success(self.request, "¡Gracias por tu reseña!")
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['pk']})
-    
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        kwargs['blog'] = Blog.objects.get(pk=self.kwargs['pk'])  # obtiene el blog actual
-        return kwargs
+
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
