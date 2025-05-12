@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from ckeditor.fields import RichTextField
-
+from django.db.models import Avg
 # MODELOS
 
 class Blog(models.Model):
@@ -14,6 +14,12 @@ class Blog(models.Model):
 
     def __str__(self):
         return self.title
+    
+    def average_rating(self):
+        reviews = self.reviews.all()
+        if reviews.exists():
+            return sum(review.rating for review in reviews) / reviews.count()
+        return 0
 
 
 class Review(models.Model):
