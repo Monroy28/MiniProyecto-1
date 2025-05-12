@@ -20,4 +20,25 @@
       <p class="text-gray-500 dark:text-gray-400 text-center">No blogs have been posted yet.</p>
     {% endfor %}
   </div>
+
+<!-- PAGINADOR -->
+<div class="flex justify-center mt-8">
+  <div class="inline-flex space-x-2">
+    {% if blogs.has_previous %}
+      <a href="?page=1" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">Primera</a>
+      <a href="?page={{ blogs.previous_page_number }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">Anterior</a>
+    {% endif %}
+
+    <span class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white rounded-md">
+      Página {{ blogs.number }} de {{ blogs.paginator.num_pages }}
+    </span>
+
+    {% if blogs.has_next %}
+      <a href="?page={{ blogs.next_page_number }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">Siguiente</a>
+      <a href="?page={{ blogs.paginator.num_pages }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">Última</a>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
+
+<!-- Verificando cambios en Git -->

@@ -8,7 +8,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import ReviewForm
 from django.shortcuts import get_object_or_404
-
+from django.core.paginator import Paginator
+from django.views.generic import ListView
+from .models import Blog
 
 
 
@@ -123,5 +125,9 @@ def signup_view(request):
 
     return render(request, 'registration/signup.html', {'form': form})
 
-
+class BlogListView(ListView):
+    model = Blog
+    template_name = 'blogapp/blog_list.html'
+    context_object_name = 'blogs'
+    paginate_by = 4  #Definimos cuántos blogs por página
 
