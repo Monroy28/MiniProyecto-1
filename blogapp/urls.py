@@ -2,6 +2,7 @@ from django.urls import path
 from .views import BlogListView, BlogDetailView, BlogCreateView, ReviewCreateView, CommentCreateView, login_view, signup_view
 from . import views
 from django.contrib.auth.views import LogoutView
+
 app_name = 'blogapp'
 
 
@@ -14,4 +15,5 @@ urlpatterns = [
     path('accounts/login/', views.login_view, name='custom_login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', LogoutView.as_view(next_page='blogapp:blog_list'), name='logout'),
+    
 ]
