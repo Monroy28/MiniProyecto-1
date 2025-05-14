@@ -1,5 +1,7 @@
 from django import forms
 from .models import Review
+from .models import Blog
+from taggit.forms import TagWidget
 
 class ReviewForm(forms.ModelForm):
     class Meta:
@@ -19,3 +21,14 @@ class ReviewForm(forms.ModelForm):
         if Review.objects.filter(blog=self.blog, reviewer=self.user).exists():
             raise forms.ValidationError("You have already submitted a review for this blog.")
         return cleaned_data
+    
+
+class BlogForm(forms.ModelForm):
+    class Meta:
+        model = Blog
+        fields = ['title', 'content', 'image', 'tags']  # 👈 incluye las etiquetas
+        widgets = {
+            'tags': TagWidget(attrs={'class': 'form-control'}),
+        }
+
+tags = forms.CharField(widget=TagWidget())

@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'blogapp',
     'widget_tweaks',
-    'ckeditor'
+    'ckeditor',
+    'taggit'
 ]
 CKEDITOR_UPLOAD_PATH = "uploads/"
 
@@ -137,3 +138,5 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+

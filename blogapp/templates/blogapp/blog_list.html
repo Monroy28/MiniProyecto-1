@@ -1,52 +1,84 @@
 {% extends 'blogapp/base.html' %}
+
 {% block content %}
   <h1 class="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-white">All Blogs</h1>
+
+  {% if request.GET.tag %}
+    <div class="text-center mb-4">
+      <p class="text-gray-600 dark:text-gray-300">
+        Filtrando por etiqueta:
+        <span class="font-semibold text-indigo-500">{{ request.GET.tag }}</span>
+        <a href="{% url 'blogapp:blog_list' %}" class="ml-2 text-sm text-red-500 hover:underline">(Quitar filtro)</a>
+      </p>
+    </div>
+  {% endif %}
+
   <div class="grid gap-6">
-    {% for blog in object_list %}
+    {% for blog in blogs %}
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
         
         {% if blog.image %}
-        <img src="{{ blog.image.url }}" alt="{{ blog.title }}" class="w-full h-64 object-cover rounded-lg mb-4">
-      {% else %}
-        <p class="text-gray-500 dark:text-gray-400">Imagen no Disponible</p>
-      {% endif %}
+          <img src="{{ blog.image.url }}" alt="{{ blog.title }}" class="w-full h-64 object-cover rounded-lg mb-4">
+        {% else %}
+          <p class="text-gray-500 dark:text-gray-400">Imagen no Disponible</p>
+        {% endif %}
         
         <h2 class="text-xl font-semibold mb-2">
           <a href="{% url 'blogapp:blog_detail' blog.pk %}" class="text-blue-400 hover:text-blue-300">{{ blog.title }}</a>
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">by {{ blog.author.username }} - {{ blog.created_at }}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">by {{ blog.author.username }} - {{ blog.created_at|date:"d M Y" }}</p>
+        
+        <!-- Mostrar las etiquetas del blog -->
+        <div class="mt-2">
+          <strong class="text-sm">Tags:</strong>
+          <ul class="flex flex-wrap gap-2 mt-1">
+            {% for tag in blog.tags.all %}
+              <li class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1 rounded-full text-xs">
+                <a href="{% url 'blogapp:blog_list' %}?tag={{ tag.slug }}" class="hover:text-blue-400">#{{ tag.name }}</a>
+              </li>
+            {% empty %}
+              <p class="text-gray-500 dark:text-gray-400">No tags available</p>
+            {% endfor %}
+          </ul>
+        </div>
+        
       </div>
     {% empty %}
       <p class="text-gray-500 dark:text-gray-400 text-center">No blogs have been posted yet.</p>
     {% endfor %}
   </div>
 
-< <!-- PAGINACIÓN -->
-<div class="flex justify-center mt-8">
-  <div class="inline-flex space-x-2">
-    {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-        Anterior
-      </a>
-    {% endif %}
-
-    {% for num in page_obj.paginator.page_range %}
-      {% if page_obj.number == num %}
-        <span class="px-4 py-2 bg-blue-500 text-white rounded-md">
-          {{ num }}
-        </span>
-      {% else %}
-        <a href="?page={{ num }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-          {{ num }}
+  <!-- PAGINACIÓN -->
+  {% if page_obj.has_other_pages %}
+  <div class="flex justify-center mt-8">
+    <div class="inline-flex space-x-2">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
+          &laquo;
+        </a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
+          Anterior
         </a>
       {% endif %}
-    {% endfor %}
 
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-        Siguiente
-      </a>
-    {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <span class="px-4 py-2 bg-blue-500 text-white rounded-md">{{ num }}</span>
+        {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <a href="?page={{ num }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
+          Siguiente
+        </a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
+          &raquo;
+        </a>
+      {% endif %}
+    </div>
   </div>
-</div>
+  {% endif %}
+  
 {% endblock %}

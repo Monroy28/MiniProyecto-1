@@ -1,6 +1,6 @@
 from django.views.generic import ListView, DetailView, CreateView
 from django.urls import reverse_lazy
-from .models import Blog, Review, Comment
+from .models import Blog, Review, Comment, Tag
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import ReviewForm
 from django.contrib import messages
-
+from .forms import BlogForm
 
 
 
@@ -20,6 +20,9 @@ class BlogListView(ListView):
     paginate_by = 5  # Muestra 5 blogs por página. Puedes ajustar este número.
     ordering = ['-created_at']  # Ordena los blogs por fecha de creación, los más nuevos primero.
 
+    
+    
+
 
 class BlogDetailView(DetailView):
     model = Blog
@@ -29,13 +32,14 @@ class BlogDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         blog = self.get_object()
         context['average'] = round(blog.average_rating(), 1)
+        context['tags'] = blog.tags.all()
         return context
 
 
 class BlogCreateView(LoginRequiredMixin, CreateView):
     model = Blog
-    fields = ['title', 'content', 'image']
     template_name = 'blogapp/blog_form.html'
+    form_class = BlogForm
 
     def form_valid(self, form):
         form.instance.author = self.request.user
@@ -133,4 +137,16 @@ class BlogListView(ListView):
     context_object_name = 'blogs'
     paginate_by = 4  # Cambiado a 4 para mostrar 4 blogs por página
     ordering = ['-created_at']  # Ordena los blogs por fecha de creación, los más nuevos primero.
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        tag_slug = self.request.GET.get('tag')
+        if tag_slug:
+            queryset = queryset.filter(tags__slug=tag_slug)
+        return queryset.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tag_filter'] = self.request.GET.get('tag')  # para mostrarlo en la plantilla
+        return context
 
