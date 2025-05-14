@@ -9,7 +9,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from .forms import ReviewForm
 from django.contrib import messages
 from .forms import BlogForm
-
+from django.db.models import Count, Avg
 
 
 
@@ -148,5 +148,15 @@ class BlogListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tag_filter'] = self.request.GET.get('tag')  # para mostrarlo en la plantilla
+
+        # 🔹 Blogs más comentados
+        context['most_commented'] = Blog.objects.annotate(
+            num_comments=Count('reviews')
+        ).order_by('-num_comments')[:3]
+
+        # 🔹 Blogs mejor puntuados
+        context['top_rated'] = Blog.objects.annotate(
+            avg_rating=Avg('reviews__rating')
+        ).order_by('-avg_rating')[:3]
         return context
 

@@ -80,5 +80,44 @@
     </div>
   </div>
   {% endif %}
-  
+
+  <!-- 🔥 SECCIÓN DE ESTADÍSTICAS -->
+  <div class="mt-16">
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">📊 Estadísticas del Blog</h2>
+
+    <div class="grid md:grid-cols-2 gap-10">
+      <!-- Más comentados -->
+      <div>
+        <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300">🗨️ Blogs más comentados</h3>
+        <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+          {% for blog in most_commented %}
+            <li>
+              <a href="{% url 'blogapp:blog_detail' blog.pk %}" class="text-blue-500 hover:underline">
+                {{ blog.title }}
+              </a> ({{ blog.reviews.count }} comentarios)
+            </li>
+          {% empty %}
+            <li>No hay blogs con comentarios aún.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Mejor puntuados -->
+      <div>
+        <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300">⭐ Blogs mejor puntuados</h3>
+        <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+          {% for blog in top_rated %}
+            <li>
+              <a href="{% url 'blogapp:blog_detail' blog.pk %}" class="text-blue-500 hover:underline">
+                {{ blog.title }}
+              </a> (Promedio: {{ blog.avg_rating|floatformat:1 }})
+            </li>
+          {% empty %}
+            <li>No hay puntuaciones aún.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
