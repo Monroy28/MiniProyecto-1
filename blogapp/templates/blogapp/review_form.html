@@ -2,79 +2,79 @@
 {% load widget_tweaks %}
 
 {% block content %}
-  <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Write a Review</h1>
-  <form method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">
-    {% csrf_token %}
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white animate-fade-in">Añadir Valoración</h1>
+    <form method="post" class="space-y-6 transition-all duration-300 ease-in-out animate-fade-in">
+        {% csrf_token %}
 
-    {% if messages %}
-    <div class="space-y-2">
-      {% for message in messages %}
-        <div class="p-4 bg-red-500 text-white rounded mb-4">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-  
-    <div class="space-y-2 transition-all duration-700 ease-in-out">
-
-      <!-- Campo de Rating personalizado con estrellas -->
-      <div>
-        <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Rating</label>
-        <div id="star-rating" class="flex space-x-1 cursor-pointer text-2xl">
-          {% for i in "12345"|make_list %}
-            <span class="star text-gray-400" data-value="{{ forloop.counter }}">&#9733;</span>
-          {% endfor %}
-        </div>
-        <input type="hidden" name="rating" id="rating-value">
-        {% if form.rating.errors %}
-          <p class="text-red-500 text-sm">{{ form.rating.errors|striptags }}</p>
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="p-4 bg-red-500 text-white rounded mb-4">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
-      </div>
 
-      <!-- Campo de Comentario -->
-      <div>
-        <label for="{{ form.comment.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Comment</label>
-        {{ form.comment|add_class:"bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        {% if form.comment.errors %}
-          <p class="text-red-500 text-sm">{{ form.comment.errors|striptags }}</p>
-        {% endif %}
-      </div>
+        <div class="space-y-4 transition-all duration-300 ease-in-out">
 
-    </div>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Rating</label>
+                <div id="star-rating" class="flex space-x-1 cursor-pointer text-2xl">
+                    {% for i in "12345"|make_list %}
+                        <span class="star text-gray-400" data-value="{{ forloop.counter }}">&#9733;</span>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="rating-value">
+                {% if form.rating.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.rating.errors|striptags }}</p>
+                {% endif %}
+            </div>
 
-    <button type="submit" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 rounded transition-all duration-500 ease-in-out">
-      Submit Review
-    </button>
-  </form>
+            <div>
+                <label for="{{ form.comment.id_for_label }}"
+                       class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Comment</label>
+                {{ form.comment|add_class:"shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-md w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                {% if form.comment.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.comment.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <button type="submit"
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+            Enviar Valoración
+        </button>
+    </form>
 {% endblock %}
 
 {% block extra_scripts %}
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const stars = document.querySelectorAll('.star');
-      const ratingInput = document.getElementById('rating-value');
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const stars = document.querySelectorAll('.star');
+            const ratingInput = document.getElementById('rating-value');
 
-      stars.forEach((star, index) => {
-        star.addEventListener('mouseover', () => {
-          stars.forEach((s, i) => {
-            s.classList.toggle('text-yellow-400', i <= index);
-            s.classList.toggle('text-gray-400', i > index);
-          });
-        });
+            stars.forEach((star, index) => {
+                star.addEventListener('mouseover', () => {
+                    stars.forEach((s, i) => {
+                        s.classList.toggle('text-yellow-400', i <= index);
+                        s.classList.toggle('text-gray-400', i > index);
+                    });
+                });
 
-        star.addEventListener('click', () => {
-          ratingInput.value = star.dataset.value;
-        });
+                star.addEventListener('click', () => {
+                    ratingInput.value = star.dataset.value;
+                });
 
-        star.addEventListener('mouseout', () => {
-          const selectedValue = parseInt(ratingInput.value) || 0;
-          stars.forEach((s, i) => {
-            s.classList.toggle('text-yellow-400', i < selectedValue);
-            s.classList.toggle('text-gray-400', i >= selectedValue);
-          });
+                star.addEventListener('mouseout', () => {
+                    const selectedValue = parseInt(ratingInput.value) || 0;
+                    stars.forEach((s, i) => {
+                        s.classList.toggle('text-yellow-400', i < selectedValue);
+                        s.classList.toggle('text-gray-400', i >= selectedValue);
+                    });
+                });
+            });
         });
-      });
-    });
-  </script>
+    </script>
 {% endblock %}
