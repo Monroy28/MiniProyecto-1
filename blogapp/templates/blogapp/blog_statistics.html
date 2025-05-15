@@ -1,0 +1,43 @@
+{% extends 'blogapp/base.html' %}
+
+{% block content %}
+    <h1 class="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-white">Estadísticas del Blog</h1>
+
+    <article class="blog-card bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">📊 Estadísticas del Blog</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300">🗨️ Blogs más comentados</h3>
+                    <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                        {% for blog in most_commented %}
+                            <li>
+                                <a href="{% url 'blogapp:blog_detail' blog.pk %}"
+                                   class="text-blue-500 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
+                                    {{ blog.title }}
+                                </a> ({{ blog.reviews.count }} comentarios)
+                            </li>
+                        {% empty %}
+                            <li>No hay blogs con comentarios aún.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300">⭐ Blogs mejor puntuados</h3>
+                    <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                        {% for blog in top_rated %}
+                            <li>
+                                <a href="{% url 'blogapp:blog_detail' blog.pk %}"
+                                   class="text-blue-500 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
+                                    {{ blog.title }}
+                                </a> (Promedio: {{ blog.avg_rating|floatformat:1 }})
+                            </li>
+                        {% empty %}
+                            <li>No hay puntuaciones aún.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </article>
+{% endblock %}

@@ -162,7 +162,7 @@
                 </a>
                 <div class="hidden md:flex space-x-4 ml-6">
                     <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-blue-500">Categorías</a>
-                    <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-blue-500">Estadísticas</a>
+                    <a href="{% url 'blogapp:blog_statistics' %}" class="text-gray-600 dark:text-gray-300 hover:text-blue-500">Estadísticas</a>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -203,7 +203,7 @@
                 class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Inicio</a>
             <a href="#"
                 class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Categorías</a>
-            <a href="#"
+            <a href="{% url 'blogapp:blog_statistics' %}"
                 class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Estadísticas</a>
             {% if user.is_authenticated %}
             <form action="{% url 'logout' %}" method="post" class="px-4 py-2">

@@ -15,5 +15,6 @@ urlpatterns = [
     path('accounts/login/', views.login_view, name='custom_login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', LogoutView.as_view(next_page='blogapp:blog_list'), name='logout'),
+    path('blog/statistics/', views.BlogStatisticsView.as_view(), name='blog_statistics'),  # Nueva URL
     
 ]

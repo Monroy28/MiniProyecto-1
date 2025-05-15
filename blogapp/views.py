@@ -166,4 +166,14 @@ class BlogListView(ListView):
             avg_rating=Avg('reviews__rating')
         ).order_by('-avg_rating')[:3]
         return context
+    
+class BlogStatisticsView(ListView):  # Nueva Vista
+    model = Blog
+    template_name = 'blogapp/blog_statistics.html'
+    context_object_name = 'blogs'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['most_commented'] = Blog.objects.annotate(comment_count=Count('reviews')).order_by('-comment_count')[:3]
+        context['top_rated'] = Blog.objects.annotate(avg_rating=Avg('reviews__rating')).order_by('-avg_rating')[:3]
+        return context
