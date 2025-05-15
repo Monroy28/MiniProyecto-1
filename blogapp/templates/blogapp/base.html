@@ -1,159 +1,185 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog and Reviews</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Django Blog Manager{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        // Paleta de Colores Personalizada
-                        bg_light: '#F9FAFB',
-                        text_light: '#1F2937',
-                        primary_light: '#3B82F6',
-                        secondary_light: '#6B7280',
-                        accent_light: '#8B5CF6',
-                        card_light: '#FFFFFF',
-                        bg_dark: '#111827',
-                        text_dark: '#D1D5DB',
-                        primary_dark: '#60A5FA',
-                        secondary_dark: '#9CA3AF',
-                        accent_dark: '#A78BFA',
-                        card_dark: '#1F2937',
-                    },
-                    fontFamily: {
-                        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'],
-                    },
-                }
-            },
-            plugins: [],
-        };
-    </script>
-
-    <style>
-        html {
-            background-color: theme('colors.white');
-            /* Default to light mode white */
-            transition: background-color 0.5s ease-in-out;
-        }
-
-        .dark html {
-            background-color: theme('colors.gray.900');
-            /* Dark mode background */
-        }
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <style id="app-style">
         body {
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            /* Fuente sans-serif por defecto de Tailwind */
-            color: theme('colors.gray.900');
-            /* Default text color (light mode) */
-            background-color: inherit;
-            /* Inherit background from html */
-            transition: color 0.5s ease-in-out, background-color 0.5s ease-in-out;
-            min-height: 100vh;
-            scroll-behavior: smooth;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
         }
-
+        .blog-card {
+            transition: transform 0.2s;
+        }
+        .blog-card:hover {
+            transform: translateY(-5px);
+        }
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spinner 0.8s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .rating-stars i {
+            cursor: pointer;
+        }
+        .rating-stars i.active {
+            color: #f59e0b;
+        }
+        .rating-stars i:hover ~ i.active {
+            color: #d1d5db;
+        }
+        .toast {
+            animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        /* Dark mode overrides */
         .dark body {
-            color: theme('colors.gray.100');
-            /* Dark mode text color */
+            background-color: #111827; /* Dark background */
+            color: #f3f4f6; /* Light text */
         }
-
-        @keyframes fade-in {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .dark .bg-white {
+            background-color: #1f2937; /* Dark card background */
         }
-
-        .animate-fade-in {
-            animation: fade-in 0.6s ease-out;
-            will-change: opacity, transform;
+        .dark .text-gray-900 {
+            color: #f3f4f6; /* Light text on dark background */
         }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-            /* Tailwind blue focus ring */
-            transition: box-shadow 0.3s ease;
+        .dark .shadow-md {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5); /* Dark shadow */
+        }
+        .dark a {
+            color: #d1d5db;
+        }
+        .dark a:hover {
+            color: #9ca3af;
+        }
+        .dark .btn-danger {
+            background-color: #dc2626;
+            color: #f3f4f6;
+        }
+        .dark .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        .dark .bg-blue-500 {
+            background-color: #3b82f6;
+        }
+        .dark .hover\:bg-blue-600:hover {
+            background-color: #2563eb;
+        }
+        .dark .bg-green-500 {
+            background-color: #16a34a;
+        }
+        .dark .hover\:bg-green-600:hover {
+            background-color: #15803d;
+        }
+        .dark input, .dark textarea, .dark select {
+            background-color: #374151;
+            color: #d1d5db;
+            border-color: #4b5563;
+        }
+        .dark input:focus, .dark textarea:focus, .dark select:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5);
         }
     </style>
 </head>
-
-<body id="body"
-    class="flex flex-col min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white font-sans transition-all duration-700 ease-in-out">
-    <nav class="bg-white dark:bg-gray-800 shadow-md py-6 px-8 transition-colors">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <a href="{% url 'blogapp:blog_list' %}"
-                class="text-2xl font-semibold tracking-wider transition-colors hover:text-blue-500 dark:hover:text-blue-400">BlogSpace</a>
-
-            <div class="flex items-center space-x-6">
-                <button onclick="toggleDarkMode()"
-                    class="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:scale-105 transition-all duration-300 shadow-lg">
+<body id="body" class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <nav class="bg-white dark:bg-gray-800 shadow-md py-4">
+        <div class="container mx-auto px-6 md:px-8 lg:px-12 flex items-center justify-between">
+            <div class="flex items-center">
+                <a href="{% url 'blogapp:blog_list' %}" class="text-xl font-semibold text-gray-800 dark:text-white hover:text-blue-500">
+                    <i class="fas fa-feather-alt mr-2"></i> BlogSpace
+                </a>
+                <div class="hidden md:flex space-x-4 ml-6">
+                    <a href="{% url 'blogapp:blog_list' %}" class="text-gray-600 dark:text-gray-300 hover:text-blue-500">Inicio</a>
+                    <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-blue-500">Categorías</a>
+                    <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-blue-500">Estadísticas</a>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleDarkMode()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:scale-105 transition-all duration-300 shadow-md">
                     <span id="theme-icon" class="transition-transform duration-500 transform">🌞</span>
+                    <span id="theme-label" class="transition-opacity duration-500 ease-in-out hidden md:inline">Modo Claro</span>
                 </button>
-
-                <a href="#"
-                    class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">Inicio</a>
-                <a href="#"
-                    class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">Categorías</a>
-                <a href="#"
-                    class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">Estadísticas</a>
-
-                {% if user.is_authenticated %}
-                <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit"
-                        class="bg-red-500 hover:bg-red-600 text-white dark:bg-red-600 dark:hover:bg-red-700 font-medium py-2 px-4 rounded transition-all duration-300">Cerrar
-                        Sesión</button>
-                </form>
-                <a href="{% url 'blogapp:add_blog' %}"
-                    class="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-medium py-2 px-4 rounded transition-all duration-300">Nuevo
-                    Blog</a>
-                {% else %}
-                <a href="{% url 'blogapp:custom_login' %}"
-                    class="bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 font-medium py-2 px-4 rounded transition-all duration-300">Iniciar
-                    Sesión</a>
-                <a href="{% url 'blogapp:signup' %}"
-                    class="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-medium py-2 px-4 rounded transition-all duration-300">Registrarse</a>
-                {% endif %}
+                <div class="hidden md:flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Cerrar Sesión</button>
+                        </form>
+                        <a href="{% url 'blogapp:add_blog' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Nuevo Blog</a>
+                    {% else %}
+                        <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar Sesión</a>
+                        <a href="{% url 'signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
+                    {% endif %}
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 focus:outline-none focus:text-blue-500" aria-label="Menú">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
+                </div>
             </div>
         </div>
-    </nav>
-    <main class="flex-grow w-full bg-white dark:bg-gray-900 transition-all duration-700 ease-in-out">
-        <div class="max-w-4xl mx-auto px-4 py-8">
-            {% block content %}{% endblock %}
+        <div class="hidden md:hidden bg-gray-100 dark:bg-gray-700 shadow-md rounded-md mt-2 py-2" id="mobile-menu">
+            <a href="{% url 'blogapp:blog_list' %}" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Inicio</a>
+            <a href="#" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Categorías</a>
+            <a href="#" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Estadísticas</a>
+            {% if user.is_authenticated %}
+                <form action="{% url 'logout' %}" method="post" class="px-4 py-2">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Cerrar Sesión</button>
+                </form>
+                <a href="{% url 'blogapp:add_blog' %}" class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Nuevo Blog</a>
+            {% else %}
+                <a href="{% url 'blogapp:custom_login' %}" class="block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Iniciar Sesión</a>
+                <a href="{% url 'blogapp:signup' %}" class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Registrarse</a>
+            {% endif %}
         </div>
+    </nav>
+
+    <main class="container mx-auto mt-8 px-6 md:px-8 lg:px-12">
+        {% block content %}{% endblock %}
     </main>
 
-    {% block extra_scripts %}{% endblock %}
+    <footer class="bg-gray-200 dark:bg-gray-800 text-center py-6 mt-8">
+        <p class="text-gray-600 dark:text-gray-400">
+            &copy; {{ year }} BlogSpace - Todos los derechos reservados.
+        </p>
+    </footer>
+
+    {% block extra_scripts %}
+    {% endblock %}
 
     <script>
-        // Persist dark mode setting
+        // Dark mode toggle (modified to persist and handle label)
         document.addEventListener('DOMContentLoaded', () => {
             const prefersDark = localStorage.getItem('theme') === 'dark';
             const body = document.getElementById('body');
             const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
             if (prefersDark) {
                 body.classList.add('dark');
                 if (icon) icon.textContent = '🌙';
-                const label = document.getElementById('theme-label');
                 if (label) label.textContent = 'Modo Oscuro';
             } else {
                 if (icon) icon.textContent = '🌞';
-                const label = document.getElementById('theme-label');
                 if (label) label.textContent = 'Modo Claro';
             }
         });
@@ -161,21 +187,34 @@
         function toggleDarkMode() {
             const body = document.getElementById('body');
             const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
             const isDark = body.classList.toggle('dark');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
             if (icon) {
                 icon.classList.add('rotate-180');
                 setTimeout(() => {
                     icon.textContent = isDark ? '🌙' : '🌞';
-                    icon.classList.remove('rotate-180'); // Remove rotate class after text change
-                    icon.classList.add('scale-125'); // Add scale-up class
-                    setTimeout(() => {
-                        icon.classList.remove('scale-125'); // Remove scale-up class
-                    }, 200); // Quick scale-up and back down
+                    icon.classList.remove('rotate-180');
+                }, 250);
+            }
+            if (label) {
+                label.classList.add('opacity-0');
+                setTimeout(() => {
+                    label.textContent = isDark ? 'Modo Oscuro' : 'Modo Claro';
+                    label.classList.remove('opacity-0');
                 }, 250);
             }
         }
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
     </script>
 </body>
-
 </html>
