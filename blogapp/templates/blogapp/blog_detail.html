@@ -34,35 +34,42 @@
     </article>
 
     <section class="mt-8">
-        <h2 class="text-2xl font-semibold mb-4">Reseñas</h2>
-        {% for review in object.reviews.all %}
-            <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4 transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
-                <p class="text-blue-700 dark:text-blue-300 font-medium">{{ review.reviewer.username }}:</p>
-
-                <div class="flex items-center mb-1">
-                    {% for i in "12345"|make_list %}
-                        {% if forloop.counter <= review.rating %}
-                            <span class="text-yellow-400 text-lg">★</span>
-                        {% else %}
-                            <span class="text-gray-300 text-lg">☆</span>
-                        {% endif %}
-                    {% endfor %}
-                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">({{ review.rating }}/5)</span>
+    <h2 class="text-2xl font-semibold mb-4">Reseñas</h2>
+    {% for review in object.reviews.all %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-5 mb-4">
+            <div class="flex items-start">
+                <div class="mr-4">
+                    <svg class="w-10 h-10 rounded-full fill-current text-gray-400 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M12 2a6 6 0 0 0-6 6v2.5a3.5 3.5 0 0 0 7 0V8a6 6 0 0 0-1-6m0 9c-2.7 0-5.8 1.6-6 4.9V19h12v-2.6c-.2-3.3-3.3-4.9-6-4.9m0-1a7 7 0 0 1 7 7v3h-14v-3a7 7 0 0 1 7-7z"/>
+                    </svg>
                 </div>
-
-                <p class="text-gray-700 dark:text-gray-300">{{ review.comment }}</p>
-                <a href="{% url 'blogapp:add_comment' blog_pk=object.pk review_pk=review.pk %}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mt-2 inline-block">Añadir Comentario</a>
-                <ul class="mt-2 list-disc ml-6 text-gray-600 dark:text-gray-400">
-                    {% for comment in review.comments.all %}
-                        <li><span class="font-semibold text-gray-900 dark:text-white">{{ comment.commenter.username }}</span>: {{ comment.content }}</li>
-                    {% endfor %}
-                </ul>
+                <div>
+                    <div class="flex items-center mb-2">
+                        <p class="text-blue-500 dark:text-blue-300 font-semibold mr-2">{{ review.reviewer.username }}</p>
+                        <div class="flex items-center mr-2">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= review.rating %}
+                                    <span class="text-yellow-400 text-lg">★</span>
+                                {% else %}
+                                    <span class="text-gray-300 text-lg">☆</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">({{ review.rating }}/5)</span>
+                    </div>
+                    <p class="text-gray-700 dark:text-gray-300">{{ review.comment }}</p>
+                    <div class="mt-2">
+                        <a href="{% url 'blogapp:add_comment' blog_pk=object.pk review_pk=review.pk %}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">Añadir Comentario</a>
+                        <span class="text-gray-400 mx-2">|</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Hace X tiempo</span> </div>
+                </div>
             </div>
-        {% empty %}
-            <p class="text-gray-400">Aún no hay reseñas. Sé el primero en añadir una.</p>
-        {% endfor %}
+        </div>
+    {% empty %}
+        <p class="text-gray-400">Aún no hay reseñas. Sé el primero en añadir una.</p>
+    {% endfor %}
 
-        <a href="{% url 'blogapp:add_review' object.pk %}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">Añadir Reseña</a>
-    </section>
+    <a href="{% url 'blogapp:add_review' object.pk %}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">Añadir Reseña</a>
+</section>
 
 {% endblock %}
