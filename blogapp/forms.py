@@ -26,7 +26,7 @@ class ReviewForm(forms.ModelForm):
 class BlogForm(forms.ModelForm):
     class Meta:
         model = Blog
-        fields = ['title', 'content', 'image', 'tags']  # 👈 incluye las etiquetas
+        fields = ['title', 'content', 'image', 'tags']  
         widgets = {
             'tags': TagWidget(attrs={'class': 'form-control'}),
         }
