@@ -26,4 +26,5 @@ Este proyecto es una mejora sobre un blog base desarrollado con Django. El objet
 
 - [Zairy Rodríguez](https://github.com/Ho5hid1ger)
 
--Valentín Rodríguez
+- [Valentín Rodríguez](https://github.com/valrg29)
+
