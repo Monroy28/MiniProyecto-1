@@ -142,7 +142,7 @@ class BlogListView(ListView):
     model = Blog
     template_name = 'blogapp/blog_list.html'
     context_object_name = 'blogs'
-    paginate_by = 4  # Cambiado a 4 para mostrar 4 blogs por página
+    paginate_by = 6  # Cambiado a 4 para mostrar 4 blogs por página
     ordering = ['-created_at']  # Ordena los blogs por fecha de creación, los más nuevos primero.
 
     def get_queryset(self):
