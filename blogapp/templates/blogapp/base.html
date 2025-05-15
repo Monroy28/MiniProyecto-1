@@ -127,7 +127,7 @@
                         <a href="{% url 'blogapp:add_blog' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Nuevo Blog</a>
                     {% else %}
                         <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar Sesión</a>
-                        <a href="{% url 'signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
+                        <a href="{% url 'blogapp:signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
                     {% endif %}
                 </div>
                 <div class="md:hidden">
