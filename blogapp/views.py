@@ -63,19 +63,27 @@ class ReviewCreateView(LoginRequiredMixin, CreateView):
     model = Review
     form_class = ReviewForm
     template_name = 'blogapp/review_form.html'
+    login_url = 'login'  # Asegúrate de que esta sea la URL name de tu vista de login
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.warning(request, "Debes iniciar sesión para dejar una reseña.")
+            return redirect(self.login_url)
+
         blog_id = self.kwargs['pk']
-        user = self.request.user
+        user = request.user
+
+        # Previene duplicados
         if Review.objects.filter(blog_id=blog_id, reviewer=user).exists():
             messages.error(request, "Ya has enviado una reseña para este blog.")
             return redirect('blogapp:blog_detail', pk=blog_id)
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
-        kwargs['blog'] = get_object_or_404(Blog, pk=self.kwargs['pk'])  # 👈 también pasamos el blog
+        kwargs['blog'] = get_object_or_404(Blog, pk=self.kwargs['pk'])
         return kwargs
 
     def form_valid(self, form):
@@ -86,7 +94,6 @@ class ReviewCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['pk']})
-
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
