@@ -1,21 +1,66 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Django Blog Manager{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog con Fondo de Imagen</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tiny.cloud/1/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-    <style id="app-style">
+    <style>
         body {
             font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: auto;
             background-color: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-image: url('R.jpg'); /* Agrega la URL de tu imagen aquí */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .container {
+            margin-top: 8rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            padding-bottom: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            z-index: 1;
+            position: relative;
+        }
+
+        nav {
+            background-color: rgba(255, 255, 255, 0.9);
+            /* Estilos para el modo claro */
+            padding: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+        }
+
+        nav .container {
+            margin-top: 0;
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
 
         .blog-card {
             transition: transform 0.2s;
+            background-color: white;
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         }
 
         .blog-card:hover {
@@ -77,27 +122,22 @@
             }
         }
 
-        /* Dark mode overrides */
+        /* Estilos para el modo oscuro */
         .dark body {
             background-color: #111827;
-            /* Dark background */
             color: #f3f4f6;
-            /* Light text */
         }
 
         .dark .bg-white {
             background-color: #1f2937;
-            /* Dark card background */
         }
 
         .dark .text-gray-900 {
             color: #f3f4f6;
-            /* Light text on dark background */
         }
 
         .dark .shadow-md {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
-            /* Dark shadow */
         }
 
         .dark a {
@@ -107,8 +147,6 @@
         .dark a:hover {
             color: #9ca3af;
         }
-
-        
 
         .dark .btn-danger {
             background-color: #dc2626;
@@ -149,15 +187,21 @@
             border-color: #60a5fa;
             box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5);
         }
+
+        .mce-content-body {
+            color: #1e293b;
+        }
+
+        .dark .mce-content-body {
+            color: #f3f4f6;
+        }
     </style>
 </head>
-
 <body id="body" class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
     <nav class="bg-white dark:bg-gray-800 shadow-md py-4">
         <div class="container mx-auto px-6 md:px-8 lg:px-12 flex items-center justify-between">
             <div class="flex items-center">
-                <a href="{% url 'blogapp:blog_list' %}"
-                    class="text-xl font-semibold text-gray-800 dark:text-white hover:text-blue-500">
+                <a href="{% url 'blogapp:blog_list' %}" class="text-xl font-semibold text-gray-800 dark:text-white hover:text-blue-500">
                     <i class="fas fa-feather-alt mr-2"></i> Zamva
                 </a>
                 <div class="hidden md:flex space-x-4 ml-6">
@@ -165,66 +209,46 @@
                 </div>
             </div>
             <div class="flex items-center space-x-4">
-                <button onclick="toggleDarkMode()"
-                    class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Cambiar tema">
                     <i id="theme-icon" class="fas fa-sun text-gray-800 dark:text-gray-400"></i>
                 </button>
                 <div class="hidden md:flex items-center space-x-4">
                     {% if user.is_authenticated %}
-                    <form action="{% url 'logout' %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit"
-                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Cerrar
-                            Sesión</button>
-                    </form>
-                    <a href="{% url 'blogapp:add_blog' %}"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Nuevo
-                        Blog</a>
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Cerrar Sesión</button>
+                        </form>
+                        <a href="{% url 'blogapp:add_blog' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Nuevo Blog</a>
                     {% else %}
-                    <a href="{% url 'blogapp:custom_login' %}"
-                        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar
-                        Sesión</a>
-                    <a href="{% url 'blogapp:signup' %}"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
+                        <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar Sesión</a>
+                        <a href="{% url 'blogapp:signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
                     {% endif %}
                 </div>
                 <div class="md:hidden">
-                    <button id="mobile-menu-button"
-                        class="text-gray-600 dark:text-gray-300 hover:text-blue-500 focus:outline-none focus:text-blue-500"
-                        aria-label="Menú">
+                    <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 focus:outline-none focus:text-blue-500" aria-label="Menú móvil">
                         <i class="fas fa-bars fa-lg"></i>
                     </button>
                 </div>
             </div>
         </div>
         <div class="hidden md:hidden bg-gray-100 dark:bg-gray-700 shadow-md rounded-md mt-2 py-2" id="mobile-menu">
-            <a href="{% url 'blogapp:blog_list' %}"
-                class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Inicio</a>
-            <a href="#"
-                class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Categorías</a>
-            <a href="{% url 'blogapp:blog_statistics' %}"
-                class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Estadísticas</a>
+            <a href="{% url 'blogapp:blog_list' %}" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Inicio</a>
+            <a href="#" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Categorías</a>
+            <a href="{% url 'blogapp:blog_statistics' %}" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Estadísticas</a>
             {% if user.is_authenticated %}
-            <form action="{% url 'logout' %}" method="post" class="px-4 py-2">
-                {% csrf_token %}
-                <button type="submit"
-                    class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Cerrar
-                    Sesión</button>
-            </form>
-            <a href="{% url 'blogapp:add_blog' %}"
-                class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Nuevo
-                Blog</a>
+                <form action="{% url 'logout' %}" method="post" class="px-4 py-2">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Cerrar Sesión</button>
+                </form>
+                <a href="{% url 'blogapp:add_blog' %}" class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Nuevo Blog</a>
             {% else %}
-            <a href="{% url 'blogapp:custom_login' %}"
-                class="block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Iniciar
-                Sesión</a>
-            <a href="{% url 'blogapp:signup' %}"
-                class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Registrarse</a>
+                <a href="{% url 'blogapp:custom_login' %}" class="block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Iniciar Sesión</a>
+                <a href="{% url 'blogapp:signup' %}" class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Registrarse</a>
             {% endif %}
         </div>
     </nav>
 
-    <main class="container mx-auto mt-8 px-6 md:px-8 lg:px-12">
+    <main class="container">
         {% block content %}{% endblock %}
     </main>
 
@@ -234,11 +258,8 @@
         </p>
     </footer>
 
-    {% block extra_scripts %}
-    {% endblock %}
-
     <script>
-        // Dark mode toggle (modified to persist and handle label)
+        // Dark mode toggle
         document.addEventListener('DOMContentLoaded', () => {
             const prefersDark = localStorage.getItem('theme') === 'dark';
             const body = document.getElementById('body');
@@ -247,11 +268,9 @@
                 body.classList.add('dark');
                 if (icon) icon.classList.remove('fa-sun');
                 if (icon) icon.classList.add('fa-moon');
-
             } else {
                 if (icon) icon.classList.remove('fa-moon');
                 if (icon) icon.classList.add('fa-sun');
-
             }
         });
 
@@ -278,7 +297,6 @@
         // Mobile menu toggle
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-
         if (mobileMenuButton && mobileMenu) {
             mobileMenuButton.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
@@ -286,5 +304,4 @@
         }
     </script>
 </body>
-
 </html>
