@@ -1,27 +1,51 @@
 {% extends 'blogapp/base.html' %}
 {% block content %}
-  <article class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
-    <h1 class="text-3xl font-bold mb-2">{{ object.title }}</h1>
-    <p class="text-gray-700 dark:text-gray-300 mb-4">{{ object.content }}</p>
-    <p class="text-sm text-gray-600 dark:text-gray-500">By {{ object.author.username }} - {{ object.created_at }}</p>
+  <article class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md transition-all duration-300 ease-in-out dark:text-white text-gray-900 animate-fade-in">
+    {% if object.featured_image %}
+      <img src="{{ object.featured_image.url }}" alt="{{ object.title }}" class="w-full rounded-md mb-6 object-cover h-96">
+    {% endif %}
+    <h1 class="text-4xl font-bold mb-4">{{ object.title }}</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">
+      Por {{ object.author.username }} - {{ object.created_at|date:"F j, Y" }}
+    </p>
+    <div class="prose dark:prose-invert max-w-none">
+      {{ object.content }}
+    </div>
   </article>
 
-  <section class="mt-8">
-    <h2 class="text-2xl font-semibold mb-4">Reviews</h2>
+  <section class="mt-12">
+    <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Valoraciones</h2>
     {% for review in object.reviews.all %}
-      <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4 transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
-        <p class="text-blue-700 dark:text-blue-300 font-medium">{{ review.reviewer.username }} - {{ review.rating }}/5 ⭐</p>
-        <p class="text-gray-700 dark:text-gray-300">{{ review.comment }}</p>
-        <a href="{% url 'blogapp:add_comment' blog_pk=object.pk review_pk=review.pk %}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mt-2 inline-block">Add Comment</a>
-        <ul class="mt-2 list-disc ml-6 text-gray-600 dark:text-gray-400">
+      <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg mb-6 transition-all duration-300 ease-in-out dark:text-white text-gray-900 animate-fade-in">
+        <div class="flex items-center mb-2">
+          <p class="text-blue-500 dark:text-blue-300 font-medium mr-2">{{ review.reviewer.username }}</p>
+          <div class="flex items-center">
+            {% for i in "xxxxx"|slice:":review.rating" %}
+              <svg class="w-4 h-4 fill-current text-yellow-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.953L10 1l2.868 5.692 6.545.953-4.706 4.032 1.176 6.545z"/></svg>
+            {% endfor %}
+            {% for i in "xxxxx"|slice:review.rating: %}
+              <svg class="w-4 h-4 fill-current text-gray-400 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.176-6.545L.587 7.645l6.545-.953L10 1l2.868 5.692 6.545.953-4.706 4.032 1.176 6.545z"/></svg>
+            {% endfor %}
+            <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">({{ review.rating }}/5)</span>
+          </div>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">{{ review.comment }}</p>
+        <div class="ml-6">
+          <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Comentarios</h3>
           {% for comment in review.comments.all %}
-            <li><span class="font-semibold text-gray-900 dark:text-white">{{ comment.commenter.username }}</span>: {{ comment.content }}</li>
+            <div class="mb-2 p-3 bg-gray-200 dark:bg-gray-700 rounded-md">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ comment.commenter.username }}:</p>
+              <p class="text-gray-700 dark:text-gray-300">{{ comment.content }}</p>
+            </div>
+          {% empty %}
+            <p class="text-gray-500 dark:text-gray-400">No hay comentarios en esta valoración aún.</p>
           {% endfor %}
-        </ul>
+          <a href="{% url 'blogapp:add_comment' blog_pk=object.pk review_pk=review.pk %}" class="inline-block text-sm text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300 mt-2">Añadir comentario</a>
+        </div>
       </div>
     {% empty %}
-      <p class="text-gray-400">No reviews yet. Be the first to add one.</p>
+      <p class="text-gray-500 dark:text-gray-400 animate-fade-in">Aún no hay valoraciones. ¡Sé el primero en añadir una!</p>
     {% endfor %}
-    <a href="{% url 'blogapp:add_review' object.pk %}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">Add Review</a>
+    <a href="{% url 'blogapp:add_review' object.pk %}" class="mt-6 inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">Añadir valoración</a>
   </section>
 {% endblock %}
