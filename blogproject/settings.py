@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os # Asegúrate de que esta importación esté al principio
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ukz72g)*267@$nvdk**+6#+a*nyzh_1t3o2=@wxtpga$cew)2^'
+SECRET_KEY = 'django-insecure-ukz72g)*267@$nvdk**+6#+a*nyzh_1t3o2=@wxtpga$cew)2^' # Deja tu propia clave secreta
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -40,9 +41,12 @@ INSTALLED_APPS = [
     'blogapp',
     'widget_tweaks',
     'ckeditor',
-    'taggit'
+    'ckeditor_uploader', # Necesario para la subida de archivos con CKEditor
+    'taggit', # Necesario para la funcionalidad de tags
+    'graphene_django', # <-- ¡AÑADIDO! Para GraphQL
+    'django_filters',  # <-- ¡AÑADIDO! Para filtros en GraphQL
+    'graphql_jwt', # <-- ¡AÑADIDO! Para JWT con Graphene
 ]
-CKEDITOR_UPLOAD_PATH = "uploads/"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -59,8 +63,9 @@ ROOT_URLCONF = 'blogproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'blogapp' / 'templates'],
-        'APP_DIRS': True,
+        # DIRS: Ruta explícita a la carpeta 'templates' de tu aplicación blogapp
+        'DIRS': [BASE_DIR / 'blogapp' / 'templates'], # Cubre blogapp/templates/registration/ y otros
+        'APP_DIRS': True, # Busca plantillas dentro de las subcarpetas 'templates' de cada app (ej. blogapp/templates/blogapp/)
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -76,7 +81,7 @@ WSGI_APPLICATION = 'blogproject.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# https://docs.djangoproject.com/en/5.1/ref/databases
 
 DATABASES = {
     'default': {
@@ -120,23 +125,77 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/' 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media' 
+
+STATIC_ROOT = BASE_DIR / 'staticfiles' # Directorio donde collectstatic recolectará archivos
+STATICFILES_DIRS = [
+    # Puedes añadir directorios adicionales de archivos estáticos aquí si los tienes,
+    # por ejemplo, si tienes una carpeta 'static' directamente en blogproject.
+    # BASE_DIR / 'static',
+]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# settings.py
+
+# Redirecciones de autenticación de Django (se mantendrán por si acaso, pero la lógica fuerte es JWT)
+LOGIN_URL = 'blogapp:custom_login' 
+LOGIN_REDIRECT_URL = 'blogapp:blog_list' 
+LOGOUT_REDIRECT_URL = 'blogapp:blog_list' 
 
 
+# CKEditor config
+CKEDITOR_UPLOAD_PATH = "uploads/" 
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': 'codesnippet', 
+    },
+    'simple_toolbar': { 
+        'toolbar': 'Custom',
+        'toolbar_Custom': [
+            ['Bold', 'Italic', 'Underline', 'Strike', 'RemoveFormat'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent'],
+            ['Link', 'Unlink'],
+            ['Maximize']
+        ],
+        'height': 150,
+        'width': '100%',
+    }
+}
 
-LOGIN_URL = 'blogapp:custom_login'
-LOGIN_REDIRECT_URL = 'blogapp:blog_list'
-LOGOUT_REDIRECT_URL = 'blogapp:blog_list'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+# Configuración de CACHES
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake', 
+    }
+}
 
+# Configuración de Graphene para GraphQL
+GRAPHENE = {
+    'SCHEMA': 'blogproject.schema.schema', # Ruta a tu esquema principal de GraphQL
+    'MIDDLEWARE': [ # Middleware para manejar la autenticación JWT en Graphene
+        'graphql_jwt.middleware.JSONWebTokenMiddleware',
+    ],
+}
 
+# Configuración para django-graphql-jwt
+GRAPHQL_JWT = {
+    'JWT_VERIFY_EXPIRATION': True,
+    'JWT_LONG_RUNNING_REFRESH_TOKEN': True, # Permite tokens de refresco de larga duración
+    'JWT_ALLOW_ANY_FEILD': True, # Para evitar errores de Type en inputs si los campos no son exactos
+}
+
+# Backend de autenticación por defecto de Django (necesario para el login tradicional y admin)
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'graphql_jwt.backends.JSONWebTokenBackend', # Necesario para la autenticación JWT
+]
