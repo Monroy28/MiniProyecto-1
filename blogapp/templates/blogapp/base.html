@@ -337,12 +337,12 @@
             // Asegurarse de que los contenedores existen antes de intentar manipularlos
             if (!authLinksContainer || !mobileAuthLinksContainer || !addBlogBtn || !mobileAddBlogBtn) {
                 console.warn("Algunos elementos de la UI de autenticación no se encontraron. Esto puede ser normal en ciertas páginas o si el DOM no está completamente cargado.");
-                // No retornar aquí para que la lógica de renderizado por defecto funcione
             }
 
             // Función interna para renderizar enlaces de login/registro
             const renderLoggedOutLinks = () => {
                 if (authLinksContainer) {
+                    // Cambiado a 'signin' y 'create_account'
                     authLinksContainer.innerHTML = `
                         <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar Sesión</a>
                         <a href="{% url 'blogapp:signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
@@ -370,7 +370,7 @@
                         logoutBtn.addEventListener('click', () => {
                             localStorage.removeItem('authToken');
                             localStorage.removeItem('refreshToken');
-                            window.location.href = '{% url "blogapp:blog_list" %}'; // Redirige a la página principal
+                            window.location.href = '{% url "blogapp:blog_list" %}';
                         });
                     }
                 }
@@ -384,7 +384,7 @@
                         mobileLogoutBtn.addEventListener('click', () => {
                             localStorage.removeItem('authToken');
                             localStorage.removeItem('refreshToken');
-                            window.location.href = '{% url "blogapp:blog_list" %}'; // Redirige a la página principal
+                            window.location.href = '{% url "blogapp:blog_list" %}';
                         });
                     }
                 }
@@ -398,7 +398,6 @@
                 return;
             }
 
-            // Hay un token, intentar verificarlo
             const verifyMutation = `
                 mutation VerifyMyToken($token: String!) {
                     verifyToken(token: $token) {
@@ -457,19 +456,16 @@
                             localStorage.removeItem('refreshToken');
                             renderLoggedOutLinks();
                         } else {
-                            // Tokens refrescados con éxito
                             localStorage.setItem('authToken', refreshResult.data.refreshToken.token);
                             localStorage.setItem('refreshToken', refreshResult.data.refreshToken.refreshToken);
                             renderLoggedInLinks(refreshResult.data.refreshToken.user.username);
                             window.currentUserId = refreshResult.data.refreshToken.user.id;
                         }
                     } else {
-                        // No hay refresh token, directamente a deslogueado
                         localStorage.removeItem('authToken');
                         renderLoggedOutLinks();
                     }
                 } else {
-                    // Token válido, mostrar nombre de usuario y botón de Cerrar Sesión
                     const username = result.data.verifyToken.payload.username; 
                     const userId = result.data.verifyToken.payload.user_id; 
                     renderLoggedInLinks(username);
@@ -477,14 +473,12 @@
                 }
             } catch (networkError) {
                 console.error('Error de red al verificar/refrescar el token:', networkError);
-                // Si hay un error de red, asumimos que no estamos autenticados
                 localStorage.removeItem('authToken'); 
                 localStorage.removeItem('refreshToken'); 
                 renderLoggedOutLinks(); 
             }
         }
 
-        // Llamar a la función al cargar el DOM para verificar el estado de autenticación
         document.addEventListener('DOMContentLoaded', checkAuthStatusAndUpdateUI);
 
     </script>

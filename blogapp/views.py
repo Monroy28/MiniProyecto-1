@@ -1,33 +1,61 @@
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, FormView
 from django.urls import reverse_lazy
-from .models import Blog, Review, Comment
+from .models import Blog, Review, Comment # NO importamos 'Tag' directamente aquí
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.shortcuts import render, redirect, get_object_or_404
+from .forms import ReviewForm, BlogForm # Asegúrate que estas forms existen en blogapp/forms.py
+from django.contrib import messages
 from django.db.models import Count, Avg
-from django.shortcuts import render, redirect # Importación única de render y redirect
-from django import forms # Importa 'forms' una sola vez al inicio
+from django import forms # Mueve esta importación al principio si no está
 
-# Si vas a usar formularios de autenticación de Django directamente (aunque el JS lo envíe a GraphQL)
-# from django.contrib.auth.forms import AuthenticationForm, UserCreationForm 
-# (Pero no los necesitas si estás usando forms.Form simples como has definido abajo)
 
+# --- Vistas del Blog ---
 
 class BlogListView(ListView):
     model = Blog
     template_name = 'blogapp/blog_list.html'
+    context_object_name = 'blogs'
+    paginate_by = 5
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        tag_slug = self.request.GET.get('tag')
+        if tag_slug:
+            queryset = queryset.filter(tags__slug=tag_slug)
+        return queryset.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tag_filter'] = self.request.GET.get('tag')
+
+        context['most_commented'] = Blog.objects.annotate(
+            num_comments=Count('reviews')
+        ).order_by('-num_comments')[:3]
+
+        context['top_rated'] = Blog.objects.annotate(
+            avg_rating=Avg('reviews__rating')
+        ).order_by('-avg_rating')[:3]
+        return context
 
 
 class BlogDetailView(DetailView):
     model = Blog
     template_name = 'blogapp/blog_detail.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        blog = self.get_object()
+        context['average'] = round(blog.average_rating(), 1) if hasattr(blog, 'average_rating') else 0
+        context['tags'] = blog.tags.all()
+        return context
+
 
 class BlogCreateView(LoginRequiredMixin, CreateView):
     model = Blog
-    fields = ['title', 'content']
-    # Asegúrate de que este template 'blog_form.html' esté en:
-    # blogapp/templates/blog_form.html
-    # O si está en blogapp/templates/blogapp/, cambia a 'blogapp/blog_form.html'
-    template_name = 'blog_form.html' 
+    template_name = 'blogapp/blog_form.html'
+    form_class = BlogForm
 
     def form_valid(self, form):
         form.instance.author = self.request.user
@@ -37,21 +65,43 @@ class BlogCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.object.pk})
 
 
-class ReviewCreateView(CreateView):
+class ReviewCreateView(LoginRequiredMixin, CreateView):
     model = Review
-    fields = ['rating', 'comment']
+    form_class = ReviewForm
     template_name = 'blogapp/review_form.html'
+    login_url = 'blogapp:custom_login'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.warning(request, "Debes iniciar sesión para dejar una reseña.")
+            return redirect(reverse_lazy(self.login_url))
+
+        blog_id = self.kwargs['pk']
+        user = request.user
+
+        if Review.objects.filter(blog_id=blog_id, reviewer=user).exists():
+            messages.error(request, "Ya has enviado una reseña para este blog.")
+            return redirect('blogapp:blog_detail', pk=blog_id)
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['blog'] = get_object_or_404(Blog, pk=self.kwargs['pk'])
+        return kwargs
 
     def form_valid(self, form):
         form.instance.reviewer = self.request.user
         form.instance.blog_id = self.kwargs['pk']
+        messages.success(self.request, "¡Gracias por tu reseña!")
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['pk']})
 
 
-class CommentCreateView(CreateView):
+class CommentCreateView(LoginRequiredMixin, CreateView):
     model = Comment
     fields = ['content']
     template_name = 'blogapp/comment_form.html'
@@ -64,47 +114,28 @@ class CommentCreateView(CreateView):
     def get_success_url(self):
         return reverse_lazy('blogapp:blog_detail', kwargs={'pk': self.kwargs['blog_pk']})
 
-# La función blog_statistics_view está correctamente fuera de las clases ahora
-def blog_statistics_view(request):
-    """
-    Vista para mostrar estadísticas del blog.
-    Calcula los blogs más comentados y mejor puntuados.
-    """
-    # Blogs más comentados:
-    most_commented = Blog.objects.annotate(
-        review_count=Count('reviews')
-    ).filter(review_count__gt=0).order_by('-review_count')[:5]
 
-    # Blogs mejor puntuados:
-    top_rated = Blog.objects.exclude(reviews__rating__isnull=True).annotate(
-        avg_rating=Avg('reviews__rating')
-    ).order_by('-avg_rating')[:5]
+class BlogStatisticsView(ListView):
+    model = Blog
+    template_name = 'blogapp/blog_statistics.html'
+    context_object_name = 'blogs'
 
-    context = {
-        'most_commented': most_commented,
-        'top_rated': top_rated,
-    }
-    return render(request, 'blogapp/blog_statistics.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['most_commented'] = Blog.objects.annotate(
+            comment_count=Count('reviews')
+        ).order_by('-comment_count')[:3]
+        context['top_rated'] = Blog.objects.annotate(
+            avg_rating=Avg('reviews__rating')
+        ).order_by('-avg_rating')[:3]
+        return context
 
-# Vistas para los formularios de Autenticación (para renderizar los templates)
-# Las clases de formulario (LoginForm, SignupForm) ahora se definen fuera de las funciones
-class LoginForm(forms.Form):
-    """Formulario simple de login para renderizar los campos."""
-    username = forms.CharField(max_length=150)
-    password = forms.CharField(widget=forms.PasswordInput)
 
-def custom_login_view(request):
-    """Vista para renderizar el formulario de inicio de sesión."""
-    context = {'form': LoginForm()}
-    return render(request, 'blogapp/registration/login.html', context)
+# --- Vistas de Autenticación (¡AHORA USANDO FORMVIEW Y NUEVAS RUTAS!) ---
+class CustomLoginView(FormView):
+    template_name = 'blogapp/auth/signin.html' # <-- ¡RUTA ACTUALIZADA!
+    form_class = AuthenticationForm
 
-class SignupForm(forms.Form):
-    """Formulario simple de registro para renderizar los campos."""
-    username = forms.CharField(max_length=150)
-    email = forms.EmailField()
-    password = forms.CharField(widget=forms.PasswordInput)
-
-def signup_view(request):
-    """Vista para renderizar el formulario de creación de cuenta."""
-    context = {'form': SignupForm()}
-    return render(request, 'blogapp/registration/signup.html', context)
+class CustomSignupView(FormView):
+    template_name = 'blogapp/auth/create_account.html' # <-- ¡RUTA ACTUALIZADA!
+    form_class = UserCreationForm
