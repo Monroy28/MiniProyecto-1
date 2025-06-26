@@ -227,7 +227,6 @@
         </div>
         <div class="hidden md:hidden bg-gray-100 dark:bg-gray-700 shadow-md rounded-md mt-2 py-2" id="mobile-menu">
             <a href="{% url 'blogapp:blog_list' %}" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Inicio</a>
-            <a href="#" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Categorías</a>
             <a href="{% url 'blogapp:blog_statistics' %}" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300">Estadísticas</a>
             {# Menú móvil: enlaces de autenticación también inyectados por JS #}
             <div id="mobile-auth-links">
@@ -242,7 +241,7 @@
 
     <footer class="bg-gray-200 dark:bg-gray-800 text-center py-6 mt-8">
         <p class="text-gray-600 dark:text-gray-400">
-            &copy; {{ year }} Zamva - Todos los derechos reservados.
+            &copy; {% now "Y" %} Zamva - Todos los derechos reservados.
         </p>
     </footer>
 
@@ -254,11 +253,15 @@
             const icon = document.getElementById('theme-icon');
             if (prefersDark) {
                 body.classList.add('dark');
-                if (icon) icon.classList.remove('fa-sun');
-                if (icon) icon.classList.add('fa-moon');
+                if (icon) {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
             } else {
-                if (icon) icon.classList.remove('fa-moon');
-                if (icon) icon.classList.add('fa-sun');
+                if (icon) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
             }
         });
 
@@ -298,6 +301,10 @@
             return localStorage.getItem('authToken');
         }
 
+        function getRefreshToken() {
+            return localStorage.getItem('refreshToken');
+        }
+
         // Función para obtener el token CSRF del DOM
         function getCsrfToken() {
             const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
@@ -329,26 +336,69 @@
 
             // Asegurarse de que los contenedores existen antes de intentar manipularlos
             if (!authLinksContainer || !mobileAuthLinksContainer || !addBlogBtn || !mobileAddBlogBtn) {
-                console.warn("Algunos elementos de la UI de autenticación no se encontraron.");
-                return; 
+                console.warn("Algunos elementos de la UI de autenticación no se encontraron. Esto puede ser normal en ciertas páginas o si el DOM no está completamente cargado.");
+                // No retornar aquí para que la lógica de renderizado por defecto funcione
             }
 
+            // Función interna para renderizar enlaces de login/registro
+            const renderLoggedOutLinks = () => {
+                if (authLinksContainer) {
+                    authLinksContainer.innerHTML = `
+                        <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar Sesión</a>
+                        <a href="{% url 'blogapp:signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
+                    `;
+                }
+                if (mobileAuthLinksContainer) {
+                    mobileAuthLinksContainer.innerHTML = `
+                        <a href="{% url 'blogapp:custom_login' %}" class="block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Iniciar Sesión</a>
+                        <a href="{% url 'blogapp:signup' %}" class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Registrarse</a>
+                    `;
+                }
+                if (addBlogBtn) addBlogBtn.classList.add('hidden');
+                if (mobileAddBlogBtn) mobileAddBlogBtn.classList.add('hidden');
+            };
+
+            // Función interna para renderizar enlaces de usuario logueado
+            const renderLoggedInLinks = (username) => {
+                if (authLinksContainer) {
+                    authLinksContainer.innerHTML = `
+                        <span class="text-gray-800 dark:text-white mr-2">Hola, ${username}</span>
+                        <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Cerrar Sesión</button>
+                    `;
+                    const logoutBtn = document.getElementById('logout-btn');
+                    if (logoutBtn) {
+                        logoutBtn.addEventListener('click', () => {
+                            localStorage.removeItem('authToken');
+                            localStorage.removeItem('refreshToken');
+                            window.location.href = '{% url "blogapp:blog_list" %}'; // Redirige a la página principal
+                        });
+                    }
+                }
+                if (mobileAuthLinksContainer) {
+                    mobileAuthLinksContainer.innerHTML = `
+                        <span class="block px-4 py-2 text-gray-800 dark:text-gray-200">Hola, ${username}</span>
+                        <button id="mobile-logout-btn" class="block bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Cerrar Sesión</button>
+                    `;
+                    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+                    if (mobileLogoutBtn) {
+                        mobileLogoutBtn.addEventListener('click', () => {
+                            localStorage.removeItem('authToken');
+                            localStorage.removeItem('refreshToken');
+                            window.location.href = '{% url "blogapp:blog_list" %}'; // Redirige a la página principal
+                        });
+                    }
+                }
+                if (addBlogBtn) addBlogBtn.classList.remove('hidden');
+                if (mobileAddBlogBtn) mobileAddBlogBtn.classList.remove('hidden');
+            };
+
+
             if (!authToken) {
-                // No hay token, mostrar enlaces de Login/Registro
-                authLinksContainer.innerHTML = `
-                    <a href="{% url 'blogapp:custom_login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Iniciar Sesión</a>
-                    <a href="{% url 'blogapp:signup' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Registrarse</a>
-                `;
-                mobileAuthLinksContainer.innerHTML = `
-                    <a href="{% url 'blogapp:custom_login' %}" class="block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Iniciar Sesión</a>
-                    <a href="{% url 'blogapp:signup' %}" class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center mt-2">Registrarse</a>
-                `;
-                addBlogBtn.classList.add('hidden');
-                mobileAddBlogBtn.classList.add('hidden');
+                renderLoggedOutLinks();
                 return;
             }
 
-            // Hay un token, intentar verificarlo con tu mutación personalizada
+            // Hay un token, intentar verificarlo
             const verifyMutation = `
                 mutation VerifyMyToken($token: String!) {
                     verifyToken(token: $token) {
@@ -373,45 +423,64 @@
                 const result = await response.json();
 
                 if (result.errors || !result.data || !result.data.verifyToken || !result.data.verifyToken.payload) {
-                    // Token inválido o expirado, eliminarlo y mostrar Login/Registro
-                    localStorage.removeItem('authToken');
-                    // Recargar la UI a estado deslogueado
-                    checkAuthStatusAndUpdateUI(); 
+                    console.warn("Token JWT inválido o expirado. Intentando refrescar...");
+                    const refreshToken = getRefreshToken();
+                    if (refreshToken) {
+                        const refreshMutation = `
+                            mutation RefreshMyToken($refreshToken: String!) {
+                                refreshToken(refreshToken: $refreshToken) {
+                                    token
+                                    refreshToken
+                                    user {
+                                        id
+                                        username
+                                    }
+                                }
+                            }
+                        `;
+                        const refreshResponse = await fetch('/graphql/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                query: refreshMutation,
+                                variables: { refreshToken: refreshToken }
+                            })
+                        });
+                        const refreshResult = await refreshResponse.json();
+
+                        if (refreshResult.errors || !refreshResult.data || !refreshResult.data.refreshToken || !refreshResult.data.refreshToken.token) {
+                            console.error("No se pudo refrescar el token. Eliminando tokens.");
+                            localStorage.removeItem('authToken');
+                            localStorage.removeItem('refreshToken');
+                            renderLoggedOutLinks();
+                        } else {
+                            // Tokens refrescados con éxito
+                            localStorage.setItem('authToken', refreshResult.data.refreshToken.token);
+                            localStorage.setItem('refreshToken', refreshResult.data.refreshToken.refreshToken);
+                            renderLoggedInLinks(refreshResult.data.refreshToken.user.username);
+                            window.currentUserId = refreshResult.data.refreshToken.user.id;
+                        }
+                    } else {
+                        // No hay refresh token, directamente a deslogueado
+                        localStorage.removeItem('authToken');
+                        renderLoggedOutLinks();
+                    }
                 } else {
                     // Token válido, mostrar nombre de usuario y botón de Cerrar Sesión
                     const username = result.data.verifyToken.payload.username; 
-                    const userId = result.data.verifyToken.payload.user_id; // Obtener user_id del payload
-
-                    authLinksContainer.innerHTML = `
-                        <span class="text-gray-800 dark:text-white mr-2">Hola, ${username}</span>
-                        <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300">Cerrar Sesión</button>
-                    `;
-                    document.getElementById('logout-btn').addEventListener('click', () => {
-                        localStorage.removeItem('authToken');
-                        window.location.reload(); 
-                    });
-                    
-                    mobileAuthLinksContainer.innerHTML = `
-                        <span class="block px-4 py-2 text-gray-800 dark:text-gray-200">Hola, ${username}</span>
-                        <button id="mobile-logout-btn" class="block bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all duration-300 w-full text-center">Cerrar Sesión</button>
-                    `;
-                    document.getElementById('mobile-logout-btn').addEventListener('click', () => {
-                        localStorage.removeItem('authToken');
-                        window.location.reload();
-                    });
-
-                    addBlogBtn.classList.remove('hidden');
-                    mobileAddBlogBtn.classList.remove('hidden');
-
-                    // Almacenar el ID del usuario actual para permisos en el frontend (ej. en blog_detail)
+                    const userId = result.data.verifyToken.payload.user_id; 
+                    renderLoggedInLinks(username);
                     window.currentUserId = userId; 
                 }
             } catch (networkError) {
-                console.error('Error de red al verificar el token:', networkError);
-                // Si hay un error de red, el token podría ser válido pero no podemos verificarlo
-                // Asumimos que no estamos autenticados y removemos el token por seguridad
+                console.error('Error de red al verificar/refrescar el token:', networkError);
+                // Si hay un error de red, asumimos que no estamos autenticados
                 localStorage.removeItem('authToken'); 
-                checkAuthStatusAndUpdateUI(); // Vuelve a llamar para renderizar los enlaces de login
+                localStorage.removeItem('refreshToken'); 
+                renderLoggedOutLinks(); 
             }
         }
 

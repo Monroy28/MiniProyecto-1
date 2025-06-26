@@ -7,7 +7,7 @@
         <form id="signup-form" method="post" class="space-y-4">
             {% csrf_token %}
             
-            {# Mensajes de Django (si aplica) #}
+            {# Mensajes de Django (se mantienen por si la vista los pasa) #}
             {% if messages %}
                 <div class="space-y-2">
                     {% for message in messages %}
@@ -21,7 +21,7 @@
             {# Mensajes de error/éxito de JavaScript #}
             <div id="js-messages" class="hidden p-4 rounded mb-4" role="alert"></div>
 
-            {# Campos del formulario #}
+            {# Campos del formulario (simplificados para JS) #}
             <div>
                 <label for="id_username" class="block mb-1 text-gray-700 dark:text-gray-300">Nombre de Usuario</label>
                 <input type="text" name="username" id="id_username" required
@@ -37,7 +37,7 @@
                 <input type="password" name="password" id="id_password1" required
                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            {# Si tienes un campo de confirmación de contraseña, añádelo aquí también #}
+            {# Si tienes un campo de confirmación de contraseña, añádelo aquí y valídalo en JS #}
             
             <button type="submit" id="submit-button" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition duration-300">
                 Crear Cuenta
@@ -70,7 +70,10 @@
                 const username = document.getElementById('id_username').value;
                 const email = document.getElementById('id_email').value;
                 const password = document.getElementById('id_password1').value;
-                // Si tienes confirmación de contraseña, asegúrate de validarla aquí en el frontend
+                // Si tienes confirmación de contraseña, valídala aquí:
+                // const passwordConfirm = document.getElementById('id_password2').value;
+                // if (password !== passwordConfirm) { /* mostrar error */ }
+
 
                 const mutation = `
                     mutation RegisterUserMutation($username: String!, $password: String!, $email: String!) {
@@ -81,6 +84,7 @@
                                 email
                             }
                             token # Obtenemos el token directamente al registrar
+                            refreshToken # También obtenemos el refresh token
                         }
                     }
                 `;
@@ -90,7 +94,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': getCsrfToken(),
+                            'X-CSRFToken': getCsrfToken(), // getCsrfToken() viene de base.html
                             'Accept': 'application/json',
                         },
                         body: JSON.stringify({
@@ -108,12 +112,14 @@
                     } else if (result.data.registerUser.user) {
                         // Registro exitoso, almacenar el token y redirigir
                         const token = result.data.registerUser.token;
+                        const refreshToken = result.data.registerUser.refreshToken;
                         if (token) {
                             localStorage.setItem('authToken', token);
+                            localStorage.setItem('refreshToken', refreshToken); // Almacenar refresh token
                             displayMessage('Cuenta creada y sesión iniciada con éxito.', 'bg-green-100 text-green-700');
                             // Redirigir a la página principal del blog después de un breve retraso
                             setTimeout(() => {
-                                window.location.href = '/blogs/'; // Ajusta esta URL a tu página principal
+                                window.location.href = '{% url "blogapp:blog_list" %}'; // Redirige a tu lista de blogs
                             }, 1500);
                         } else {
                             displayMessage('Cuenta creada, pero no se recibió el token de autenticación.', 'bg-yellow-100 text-yellow-700');
@@ -131,11 +137,7 @@
                 }
             });
 
-            function getCsrfToken() {
-                const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
-                return csrfTokenElement ? csrfTokenElement.value : '';
-            }
-
+            // displayMessage() se define en base.html ahora
             function displayMessage(message, classes) {
                 jsMessages.innerHTML = message;
                 jsMessages.className = classes + ' p-4 rounded mb-4';

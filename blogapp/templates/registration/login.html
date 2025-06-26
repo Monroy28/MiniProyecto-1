@@ -7,7 +7,7 @@
         <form id="login-form" method="post" class="space-y-4">
             {% csrf_token %}
             
-            {# Mensajes de Django (si aplica) #}
+            {# Mensajes de Django (se mantienen por si la vista los pasa) #}
             {% if messages %}
                 <div class="space-y-2">
                     {% for message in messages %}
@@ -21,7 +21,7 @@
             {# Mensajes de error/éxito de JavaScript #}
             <div id="js-messages" class="hidden p-4 rounded mb-4" role="alert"></div>
 
-            {# Campos del formulario #}
+            {# Campos del formulario (simplificados para JS) #}
             <div>
                 <label for="id_username" class="block mb-1 text-gray-700 dark:text-gray-300">Nombre de Usuario</label>
                 <input type="text" name="username" id="id_username" required
@@ -54,7 +54,7 @@
             const jsMessages = document.getElementById('js-messages');
 
             loginForm.addEventListener('submit', async (event) => {
-                event.preventDefault(); // Evita el envío tradicional
+                event.preventDefault(); // Evita el envío tradicional del formulario
 
                 jsMessages.classList.add('hidden');
                 jsMessages.textContent = '';
@@ -65,11 +65,15 @@
                 const password = document.getElementById('id_password').value;
 
                 const mutation = `
-                    mutation ObtainToken($username: String!, $password: String!) {
-                        tokenAuth(username: $username, password: $password) {
+                    mutation ObtainTokenMutation($username: String!, $password: String!) {
+                        obtainToken(username: $username, password: $password) {
                             token
-                            refreshToken # Si estás usando refresh tokens
-                            payload
+                            refreshToken 
+                            user {
+                                id
+                                username
+                                email
+                            }
                         }
                     }
                 `;
@@ -79,7 +83,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': getCsrfToken(),
+                            'X-CSRFToken': getCsrfToken(), // getCsrfToken() viene de base.html
                             'Accept': 'application/json',
                         },
                         body: JSON.stringify({
@@ -94,15 +98,17 @@
                         console.error('Errores de GraphQL:', result.errors);
                         const errorMsg = result.errors.map(err => err.message).join('<br>');
                         displayMessage(`Error de inicio de sesión: <br>${errorMsg}`, 'bg-red-100 text-red-700');
-                    } else if (result.data.tokenAuth && result.data.tokenAuth.token) {
-                        const token = result.data.tokenAuth.token;
+                    } else if (result.data.obtainToken && result.data.obtainToken.token) {
+                        const token = result.data.obtainToken.token;
+                        const refreshToken = result.data.obtainToken.refreshToken; // Guardar el refresh token
+                        
                         localStorage.setItem('authToken', token);
-                        // Opcional: localStorage.setItem('refreshToken', result.data.tokenAuth.refreshToken);
+                        localStorage.setItem('refreshToken', refreshToken); // Almacenar también el refresh token
                         
                         displayMessage('Sesión iniciada con éxito.', 'bg-green-100 text-green-700');
                         // Redirigir a la página principal del blog después de un breve retraso
                         setTimeout(() => {
-                            window.location.href = '/blogs/'; // Ajusta esta URL a tu página principal
+                            window.location.href = '{% url "blogapp:blog_list" %}'; // Redirige a tu lista de blogs
                         }, 1500);
                     } else {
                         displayMessage('Credenciales inválidas. Por favor, inténtalo de nuevo.', 'bg-red-100 text-red-700');
@@ -117,11 +123,7 @@
                 }
             });
 
-            function getCsrfToken() {
-                const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
-                return csrfTokenElement ? csrfTokenElement.value : '';
-            }
-
+            // displayMessage() se define en base.html ahora, pero puedes definir una local si prefieres
             function displayMessage(message, classes) {
                 jsMessages.innerHTML = message;
                 jsMessages.className = classes + ' p-4 rounded mb-4';
