@@ -1,26 +1,146 @@
 {% extends 'blogapp/base.html' %}
+{% load widget_tweaks %}
 
 {% block content %}
-  <div class="max-w-md mx-auto mt-16 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-md transition-colors duration-500">
-    <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6">Crear Cuenta</h2>
-    <form method="post" class="space-y-4">
-      {% csrf_token %}
-      {% for field in form %}
-        <div>
-          <label class="block mb-1 text-gray-700 dark:text-gray-300">{{ field.label }}</label>
-          {{ field }}
-          {% if field.errors %}
-            <p class="text-red-500 text-sm">{{ field.errors|striptags }}</p>
-          {% endif %}
+    <div class="max-w-md mx-auto mt-16 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-md transition-colors duration-500">
+        <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6">Crear Cuenta</h2>
+        <form id="signup-form" method="post" class="space-y-4">
+            {% csrf_token %}
+            
+            {# Mensajes de Django (si aplica) #}
+            {% if messages %}
+                <div class="space-y-2">
+                    {% for message in messages %}
+                        <div class="p-4 bg-red-500 text-white rounded mb-4" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {# Mensajes de error/éxito de JavaScript #}
+            <div id="js-messages" class="hidden p-4 rounded mb-4" role="alert"></div>
+
+            {# Campos del formulario #}
+            <div>
+                <label for="id_username" class="block mb-1 text-gray-700 dark:text-gray-300">Nombre de Usuario</label>
+                <input type="text" name="username" id="id_username" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="id_email" class="block mb-1 text-gray-700 dark:text-gray-300">Correo Electrónico</label>
+                <input type="email" name="email" id="id_email" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="id_password1" class="block mb-1 text-gray-700 dark:text-gray-300">Contraseña</label>
+                <input type="password" name="password" id="id_password1" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            {# Si tienes un campo de confirmación de contraseña, añádelo aquí también #}
+            
+            <button type="submit" id="submit-button" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition duration-300">
+                Crear Cuenta
+            </button>
+            <div id="loading-spinner" class="hidden loader ease-linear rounded-full border-4 border-t-4 border-green-500 h-8 w-8 mx-auto"></div>
+        </form>
+        <div class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+            ¿Ya tienes cuenta?
+            <a href="{% url 'blogapp:custom_login' %}" class="text-blue-500 hover:underline">Inicia sesión</a>
         </div>
-      {% endfor %}
-      <button type="submit" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition duration-300">
-        Crear Cuenta
-      </button>
-    </form>
-    <div class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-      ¿Ya tienes cuenta?
-      <a href="{% url 'login' %}" class="text-blue-500 hover:underline">Inicia sesión</a>
     </div>
-  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const signupForm = document.getElementById('signup-form');
+            const submitButton = document.getElementById('submit-button');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const jsMessages = document.getElementById('js-messages');
+
+            signupForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); // Evita el envío tradicional
+
+                jsMessages.classList.add('hidden');
+                jsMessages.textContent = '';
+                submitButton.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+
+                const username = document.getElementById('id_username').value;
+                const email = document.getElementById('id_email').value;
+                const password = document.getElementById('id_password1').value;
+                // Si tienes confirmación de contraseña, asegúrate de validarla aquí en el frontend
+
+                const mutation = `
+                    mutation RegisterUserMutation($username: String!, $password: String!, $email: String!) {
+                        registerUser(username: $username, password: $password, email: $email) {
+                            user {
+                                id
+                                username
+                                email
+                            }
+                            token # Obtenemos el token directamente al registrar
+                        }
+                    }
+                `;
+
+                try {
+                    const response = await fetch('/graphql/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(),
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: mutation,
+                            variables: { username, password, email }
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.errors) {
+                        console.error('Errores de GraphQL:', result.errors);
+                        const errorMsg = result.errors.map(err => err.message).join('<br>');
+                        displayMessage(`Error de registro: <br>${errorMsg}`, 'bg-red-100 text-red-700');
+                    } else if (result.data.registerUser.user) {
+                        // Registro exitoso, almacenar el token y redirigir
+                        const token = result.data.registerUser.token;
+                        if (token) {
+                            localStorage.setItem('authToken', token);
+                            displayMessage('Cuenta creada y sesión iniciada con éxito.', 'bg-green-100 text-green-700');
+                            // Redirigir a la página principal del blog después de un breve retraso
+                            setTimeout(() => {
+                                window.location.href = '/blogs/'; // Ajusta esta URL a tu página principal
+                            }, 1500);
+                        } else {
+                            displayMessage('Cuenta creada, pero no se recibió el token de autenticación.', 'bg-yellow-100 text-yellow-700');
+                        }
+                    } else {
+                        displayMessage('Ocurrió un error desconocido durante el registro.', 'bg-red-100 text-red-700');
+                    }
+
+                } catch (networkError) {
+                    console.error('Error de red:', networkError);
+                    displayMessage('Error de conexión. Por favor, revisa tu red.', 'bg-red-100 text-red-700');
+                } finally {
+                    submitButton.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                }
+            });
+
+            function getCsrfToken() {
+                const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                return csrfTokenElement ? csrfTokenElement.value : '';
+            }
+
+            function displayMessage(message, classes) {
+                jsMessages.innerHTML = message;
+                jsMessages.className = classes + ' p-4 rounded mb-4';
+                jsMessages.classList.remove('hidden');
+            }
+        });
+    </script>
 {% endblock %}
