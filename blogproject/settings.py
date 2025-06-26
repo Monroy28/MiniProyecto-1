@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'ckeditor',
     'taggit',
-    'graphene_django'
+    'graphene_django',
+    'django_filters',
 ]
+
 CKEDITOR_UPLOAD_PATH = "uploads/"
 
 MIDDLEWARE = [

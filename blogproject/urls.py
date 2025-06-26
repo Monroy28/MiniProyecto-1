@@ -21,9 +21,10 @@ from django.conf.urls.static import static
 from django.conf import settings
 from graphene_django.views import GraphQLView
 from .schema import schema
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('blogapp.urls')),  # Conecta las URLs de blogapp
+    path('', include('blogapp.urls')),  
     path('accounts/', include('django.contrib.auth.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
     path("graphql" , GraphQLView.as_view(graphiql=True, schema=schema))
