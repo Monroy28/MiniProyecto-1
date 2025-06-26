@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'blogapp',
     'widget_tweaks',
     'ckeditor',
-    'taggit'
+    'taggit',
+    'graphene_django'
 ]
 CKEDITOR_UPLOAD_PATH = "uploads/"
 

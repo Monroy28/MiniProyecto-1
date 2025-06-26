@@ -103,7 +103,7 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.commenter = self.request.user
-        form.instance.review_id = self.kwargs['review_pk']
+        form.instance.review = get_object_or_404(Review, pk=self.kwargs['review_pk'])
         return super().form_valid(form)
 
     def get_success_url(self):

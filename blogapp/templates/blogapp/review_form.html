@@ -1,78 +1,28 @@
 {% extends 'blogapp/base.html' %}
 {% load widget_tweaks %}
-
 {% block content %}
-    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Escribir una Reseña</h1>
-    <form method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">
-        {% csrf_token %}
 
-        {% if messages %}
-        <div class="space-y-2">
-            {% for message in messages %}
-                <div class="p-4 bg-red-500 text-white rounded mb-4" role="alert">
-                    {{ message }}
-                </div>
-            {% endfor %}
+  <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white animate-fade-in">Escribir una Valoración</h1>
+  <form method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">
+    {% csrf_token %}
+    {{ form.media }}  {# Esto carga el JS/CSS para el editor enriquecido #}
+
+    <div class="space-y-2 transition-all duration-700 ease-in-out">
+      {% for field in form %}
+        <div>
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">{{ field.label }}</label>
+          
+          {# Si es el campo de texto enriquecido, mantén las clases, el widget hará lo suyo #}
+          {{ field|add_class:"shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-md w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" }}
+          
+          {% if field.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ field.errors|striptags }}</p>
+          {% endif %}
         </div>
-        {% endif %}
+      {% endfor %}
+    </div>
 
-        <div class="space-y-2 transition-all duration-700 ease-in-out">
+    <button type="submit" class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2">Enviar Valoración</button>
+  </form>
 
-            <div>
-                <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Calificación</label>
-                <div id="star-rating" class="flex space-x-1 cursor-pointer text-2xl">
-                    {% for i in "12345"|make_list %}
-                        <span class="star text-gray-400" data-value="{{ forloop.counter }}">★</span>
-                    {% endfor %}
-                </div>
-                <input type="hidden" name="rating" id="rating-value">
-                {% if form.rating.errors %}
-                    <p class="text-red-500 text-sm">{{ form.rating.errors|striptags }}</p>
-                {% endif %}
-            </div>
-
-            <div>
-                <label for="{{ form.comment.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Comentario</label>
-                {{ form.comment|add_class:"bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-                {% if form.comment.errors %}
-                    <p class="text-red-500 text-sm">{{ form.comment.errors|striptags }}</p>
-                {% endif %}
-            </div>
-
-        </div>
-
-        <button type="submit" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 rounded transition-all duration-500 ease-in-out">
-            Enviar Reseña
-        </button>
-    </form>
-{% endblock %}
-
-{% block extra_scripts %}
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const stars = document.querySelectorAll('.star');
-            const ratingInput = document.getElementById('rating-value');
-
-            stars.forEach((star, index) => {
-                star.addEventListener('mouseover', () => {
-                    stars.forEach((s, i) => {
-                        s.classList.toggle('text-yellow-400', i <= index);
-                        s.classList.toggle('text-gray-400', i > index);
-                    });
-                });
-
-                star.addEventListener('click', () => {
-                    ratingInput.value = star.dataset.value;
-                });
-
-                star.addEventListener('mouseout', () => {
-                    const selectedValue = parseInt(ratingInput.value) || 0;
-                    stars.forEach((s, i) => {
-                        s.classList.toggle('text-yellow-400', i < selectedValue);
-                        s.classList.toggle('text-gray-400', i >= selectedValue);
-                    });
-                });
-            });
-        });
-    </script>
 {% endblock %}

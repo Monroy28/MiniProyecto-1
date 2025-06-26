@@ -2,8 +2,9 @@
 {% load widget_tweaks %}
 {% block content %}
     <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white animate-fade-in">Crear un Nuevo Blog</h1>
-    <form method="post" class="space-y-6 transition-all duration-300 ease-in-out animate-fade-in">
+    <form method="post" enctype="multipart/form-data" class="space-y-6 transition-all duration-300 ease-in-out animate-fade-in">
         {% csrf_token %}
+        {{ form.media }}
         <div class="space-y-4 transition-all duration-300 ease-in-out">
             {% for field in form %}
                 <div>

@@ -15,7 +15,7 @@
             <img src="{{ object.image.url }}" alt="Imagen destacada de {{ object.title }}" class="w-full h-auto mb-4 rounded-lg">
         {% endif %}
 
-        <p class="text-gray-700 dark:text-gray-300 mb-4">{{ object.content }}</p>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">{{ object.content|safe }}
         <p class="text-sm text-gray-600 dark:text-gray-500">Por {{ object.author.username }} - {{ object.created_at }}</p>
 
         <div class="mt-4">
