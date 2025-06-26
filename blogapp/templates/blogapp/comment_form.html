@@ -1,19 +1,159 @@
 {% extends 'blogapp/base.html' %}
 {% load widget_tweaks %}
+
 {% block content %}
-  <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Leave a Comment</h1>
-  <form method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">{% csrf_token %}{{ form.media }}
-    <div class="space-y-2 transition-all duration-700 ease-in-out">
-      {% for field in form %}
-        <div>
-          <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">{{ field.label }}</label>
-          {{ field|add_class:"bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-          {% if field.errors %}
-            <p class="text-red-500 text-sm">{{ field.errors|striptags }}</p>
-          {% endif %}
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white animate-fade-in">Dejar un Comentario</h1>
+    <form id="comment-form" method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">
+        {% csrf_token %}
+
+        {# Mensajes de Django (se mantendrán) #}
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="p-4 bg-red-500 text-white rounded mb-4" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# Mensajes de error/éxito de JavaScript #}
+        <div id="js-messages" class="hidden p-4 rounded mb-4" role="alert"></div>
+
+        <div class="space-y-2 transition-all duration-700 ease-in-out">
+            <div>
+                <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Comentario</label>
+                {# Usa {{ form.content }} para que CKEditor se inicialice sobre él #}
+                {{ form.content|add_class:"bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                {% if form.content.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.content.errors|striptags }}</p>
+                {% endif %}
+            </div>
         </div>
-      {% endfor %}
-    </div>
-    <button type="submit" class="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white dark:bg-purple-600 dark:hover:bg-purple-700 rounded transition-all duration-500 ease-in-out">Submit Comment</button>
-  </form>
+
+        <button type="submit" id="submit-button" class="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white dark:bg-purple-600 dark:hover:bg-purple-700 rounded transition-all duration-500 ease-in-out">
+            Enviar Comentario
+        </button>
+        <div id="loading-spinner" class="hidden loader ease-linear rounded-full border-4 border-t-4 border-purple-500 h-8 w-8 mx-auto"></div>
+    </form>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const commentForm = document.getElementById('comment-form');
+            const submitButton = document.getElementById('submit-button');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const jsMessages = document.getElementById('js-messages');
+
+            // Asegúrate de que el ID del textarea para CKEditor sea correcto
+            const commentTextarea = document.querySelector('textarea[name="content"]');
+            if (commentTextarea) {
+                CKEDITOR.replace(commentTextarea, {
+                    toolbar: [
+                        ['Bold', 'Italic', 'Underline', 'Strike', 'RemoveFormat'],
+                        ['NumberedList', 'BulletedList', 'Outdent', 'Indent'],
+                        ['Link', 'Unlink'],
+                        ['Format', 'FontSize'],
+                        ['TextColor', 'BGColor'],
+                        ['Maximize', 'ShowBlocks']
+                    ],
+                    height: 200,
+                    resize_enabled: false,
+                });
+            } else {
+                console.error("CKEditor: No se encontró el textarea con name='content'.");
+            }
+
+
+            // --- Lógica de envío del formulario con GraphQL ---
+            commentForm.addEventListener('submit', async function(event) {
+                event.preventDefault(); // Evita el envío tradicional del formulario
+
+                jsMessages.classList.add('hidden');
+                jsMessages.textContent = '';
+                submitButton.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+
+                const urlPathSegments = window.location.pathname.split('/').filter(s => s !== '');
+                // Asume URL como /blog/<blog_pk>/review/<review_pk>/comment/
+                const blogPk = urlPathSegments[1];
+                const reviewPk = urlPathSegments[3];
+                const content = CKEDITOR.instances[commentTextarea.id].getData(); // Obtiene el contenido HTML de CKEditor
+
+                if (!content.trim()) {
+                    displayMessage('El comentario no puede estar vacío.', 'bg-red-100 text-red-700');
+                    submitButton.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                    return;
+                }
+
+                const mutation = `
+                    mutation CreateCommentMutation($reviewId: ID!, $content: String!) {
+                        createComment(reviewId: $reviewId, content: $content) {
+                            comment {
+                                id
+                                content
+                            }
+                        }
+                    }
+                `;
+
+                try {
+                    const response = await fetch('/graphql/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(), // Envía el token CSRF
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: mutation,
+                            variables: {
+                                reviewId: reviewPk, // ID de la reseña al que se asocia el comentario
+                                content: content
+                            }
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.errors) {
+                        console.error('Errores de GraphQL:', result.errors);
+                        const errorMsg = result.errors.map(err => err.message).join('<br>');
+                        displayMessage(`Error al enviar comentario: <br>${errorMsg}`, 'bg-red-100 text-red-700');
+                    } else if (result.data.createComment.comment) {
+                        displayMessage('¡Comentario enviado con éxito!', 'bg-green-100 text-green-700');
+                        // Redirige al detalle del blog después de un breve retraso
+                        setTimeout(() => {
+                            window.location.href = `/blog/${blogPk}/`; // Redirige al detalle del blog
+                        }, 1500);
+                    } else {
+                        displayMessage('Ocurrió un error desconocido al enviar el comentario.', 'bg-red-100 text-red-700');
+                    }
+
+                } catch (networkError) {
+                    console.error('Error de red:', networkError);
+                    displayMessage('Error de conexión. Por favor, revisa tu red.', 'bg-red-100 text-red-700');
+                } finally {
+                    submitButton.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                }
+            });
+
+            // Función auxiliar para obtener el token CSRF
+            function getCsrfToken() {
+                const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                return csrfTokenElement ? csrfTokenElement.value : '';
+            }
+
+            // Función auxiliar para mostrar mensajes en el frontend
+            function displayMessage(message, classes) {
+                jsMessages.innerHTML = message;
+                jsMessages.className = classes + ' p-4 rounded mb-4';
+                jsMessages.classList.remove('hidden');
+            }
+        });
+    </script>
 {% endblock %}

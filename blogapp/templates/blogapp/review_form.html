@@ -2,79 +2,213 @@
 {% load widget_tweaks %}
 
 {% block content %}
-  <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Write a Review</h1>
-  <form method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">
-    {% csrf_token %}
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white animate-fade-in">Escribir una Reseña</h1>
+    <form id="review-form" method="post" class="space-y-4 transition-all duration-700 ease-in-out animate-fade-in">
+        {% csrf_token %}
 
-    {% if messages %}
-    <div class="space-y-2">
-      {% for message in messages %}
-        <div class="p-4 bg-red-500 text-white rounded mb-4">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-  
-    <div class="space-y-2 transition-all duration-700 ease-in-out">
-
-      <!-- Campo de Rating personalizado con estrellas -->
-      <div>
-        <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Rating</label>
-        <div id="star-rating" class="flex space-x-1 cursor-pointer text-2xl">
-          {% for i in "12345"|make_list %}
-            <span class="star text-gray-400" data-value="{{ forloop.counter }}">&#9733;</span>
-          {% endfor %}
-        </div>
-        <input type="hidden" name="rating" id="rating-value">
-        {% if form.rating.errors %}
-          <p class="text-red-500 text-sm">{{ form.rating.errors|striptags }}</p>
+        {# Mensajes de Django (se mantendrán por si acaso hay errores no relacionados con JS) #}
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="p-4 bg-red-500 text-white rounded mb-4" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
-      </div>
 
-      <!-- Campo de Comentario -->
-      <div>
-        <label for="{{ form.comment.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Comment</label>
-        {{ form.comment|add_class:"bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        {% if form.comment.errors %}
-          <p class="text-red-500 text-sm">{{ form.comment.errors|striptags }}</p>
-        {% endif %}
-      </div>
+        {# Mensajes de error/éxito de JavaScript #}
+        <div id="js-messages" class="hidden p-4 rounded mb-4" role="alert"></div>
 
-    </div>
+        <div class="space-y-2 transition-all duration-700 ease-in-out">
+            <div>
+                <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Calificación</label>
+                <div id="star-rating" class="flex space-x-1 cursor-pointer text-2xl">
+                    {% for i in "12345"|make_list %}
+                        <span class="star text-gray-400" data-value="{{ forloop.counter }}">★</span>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="rating-value">
+                {# Si usas un formulario de Django, los errores del campo rating se manejarán aquí #}
+                {% if form.rating.errors %}
+                    <p class="text-red-500 text-sm">{{ form.rating.errors|striptags }}</p>
+                {% endif %}
+            </div>
 
-    <button type="submit" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 rounded transition-all duration-500 ease-in-out">
-      Submit Review
-    </button>
-  </form>
+            <div>
+                <label for="{{ form.comment.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-900 dark:text-white">Comentario</label>
+                {# Usa {{ form.comment }} para que CKEditor se inicialice sobre él #}
+                {{ form.comment|add_class:"bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg w-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                {% if form.comment.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.comment.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <button type="submit" id="submit-button" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white dark:bg-green-600 dark:hover:bg-green-700 rounded transition-all duration-500 ease-in-out">
+            Enviar Reseña
+        </button>
+        <div id="loading-spinner" class="hidden loader ease-linear rounded-full border-4 border-t-4 border-blue-500 h-8 w-8 mx-auto"></div>
+    </form>
 {% endblock %}
 
 {% block extra_scripts %}
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const stars = document.querySelectorAll('.star');
-      const ratingInput = document.getElementById('rating-value');
+    <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const stars = document.querySelectorAll('.star');
+            const ratingInput = document.getElementById('rating-value');
+            const reviewForm = document.getElementById('review-form');
+            const submitButton = document.getElementById('submit-button');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const jsMessages = document.getElementById('js-messages');
 
-      stars.forEach((star, index) => {
-        star.addEventListener('mouseover', () => {
-          stars.forEach((s, i) => {
-            s.classList.toggle('text-yellow-400', i <= index);
-            s.classList.toggle('text-gray-400', i > index);
-          });
-        });
+            // Asegúrate de que el ID del textarea para CKEditor sea correcto
+            const commentTextarea = document.querySelector('textarea[name="comment"]');
+            if (commentTextarea) {
+                CKEDITOR.replace(commentTextarea, {
+                    toolbar: [
+                        ['Bold', 'Italic', 'Underline', 'Strike', 'RemoveFormat'],
+                        ['NumberedList', 'BulletedList', 'Outdent', 'Indent'],
+                        ['Link', 'Unlink'],
+                        ['Format', 'FontSize'],
+                        ['TextColor', 'BGColor'],
+                        ['Maximize', 'ShowBlocks']
+                    ],
+                    height: 200,
+                    resize_enabled: false,
+                });
+            } else {
+                console.error("CKEditor: No se encontró el textarea con name='comment'.");
+            }
 
-        star.addEventListener('click', () => {
-          ratingInput.value = star.dataset.value;
-        });
 
-        star.addEventListener('mouseout', () => {
-          const selectedValue = parseInt(ratingInput.value) || 0;
-          stars.forEach((s, i) => {
-            s.classList.toggle('text-yellow-400', i < selectedValue);
-            s.classList.toggle('text-gray-400', i >= selectedValue);
-          });
+            // Lógica de calificación de estrellas
+            let currentRating = parseInt(ratingInput.value) || 0; // Para persistir la selección inicial
+
+            stars.forEach((star, index) => {
+                star.addEventListener('mouseover', () => {
+                    stars.forEach((s, i) => {
+                        s.classList.toggle('text-yellow-400', i <= index);
+                        s.classList.toggle('text-gray-400', i > index);
+                    });
+                });
+
+                star.addEventListener('click', () => {
+                    currentRating = parseInt(star.dataset.value);
+                    ratingInput.value = currentRating;
+                    stars.forEach((s, i) => { // Asegura que se mantenga el color después del clic
+                        s.classList.toggle('text-yellow-400', i < currentRating);
+                        s.classList.toggle('text-gray-400', i >= currentRating);
+                    });
+                });
+
+                star.addEventListener('mouseout', () => {
+                    stars.forEach((s, i) => {
+                        s.classList.toggle('text-yellow-400', i < currentRating);
+                        s.classList.toggle('text-gray-400', i >= currentRating);
+                    });
+                });
+            });
+
+            // Inicializar las estrellas al cargar la página si ya hay un valor
+            if (currentRating > 0) {
+                 stars.forEach((s, i) => {
+                    s.classList.toggle('text-yellow-400', i < currentRating);
+                    s.classList.toggle('text-gray-400', i >= currentRating);
+                });
+            }
+
+
+            // --- Lógica de envío del formulario con GraphQL ---
+            reviewForm.addEventListener('submit', async function(event) {
+                event.preventDefault(); // Evita el envío tradicional del formulario
+
+                jsMessages.classList.add('hidden'); // Oculta mensajes anteriores
+                jsMessages.textContent = ''; // Limpia el contenido del mensaje
+                submitButton.disabled = true; // Deshabilita el botón de enviar
+                loadingSpinner.classList.remove('hidden'); // Muestra el spinner de carga
+
+                const blogPk = window.location.pathname.split('/')[2]; // Asume URL como /blog/<blog_pk>/review/add/
+                const rating = ratingInput.value;
+                const comment = CKEDITOR.instances[commentTextarea.id].getData(); // Obtiene el contenido HTML de CKEditor
+
+                if (!rating || rating === '0') {
+                    displayMessage('Por favor, selecciona una calificación.', 'bg-red-100 text-red-700');
+                    submitButton.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                    return;
+                }
+
+                const mutation = `
+                    mutation CreateReviewMutation($blogId: ID!, $rating: Int!, $comment: String) {
+                        createReview(blogId: $blogId, rating: $rating, comment: $comment) {
+                            review {
+                                id
+                                rating
+                                comment
+                            }
+                        }
+                    }
+                `;
+
+                try {
+                    const response = await fetch('/graphql/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(), // Envía el token CSRF
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: mutation,
+                            variables: {
+                                blogId: blogPk, // ID del blog al que se asocia la reseña
+                                rating: parseInt(rating),
+                                comment: comment
+                            }
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.errors) {
+                        console.error('Errores de GraphQL:', result.errors);
+                        const errorMsg = result.errors.map(err => err.message).join('<br>');
+                        displayMessage(`Error al enviar reseña: <br>${errorMsg}`, 'bg-red-100 text-red-700');
+                    } else if (result.data.createReview.review) {
+                        displayMessage('¡Reseña enviada con éxito!', 'bg-green-100 text-green-700');
+                        // Redirige al detalle del blog después de un breve retraso
+                        setTimeout(() => {
+                            window.location.href = `/blog/${blogPk}/`;
+                        }, 1500);
+                    } else {
+                        // Manejar otros casos de error si la mutación devuelve nulo o no exitoso sin errores explícitos
+                        displayMessage('Ocurrió un error desconocido al enviar la reseña.', 'bg-red-100 text-red-700');
+                    }
+
+                } catch (networkError) {
+                    console.error('Error de red:', networkError);
+                    displayMessage('Error de conexión. Por favor, revisa tu red.', 'bg-red-100 text-red-700');
+                } finally {
+                    submitButton.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                }
+            });
+
+            // Función auxiliar para obtener el token CSRF
+            function getCsrfToken() {
+                const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                return csrfTokenElement ? csrfTokenElement.value : '';
+            }
+
+            // Función auxiliar para mostrar mensajes en el frontend
+            function displayMessage(message, classes) {
+                jsMessages.innerHTML = message;
+                jsMessages.className = classes + ' p-4 rounded mb-4'; // Restablece clases y añade las nuevas
+                jsMessages.classList.remove('hidden');
+            }
         });
-      });
-    });
-  </script>
+    </script>
 {% endblock %}

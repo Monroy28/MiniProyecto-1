@@ -1,123 +1,249 @@
 {% extends 'blogapp/base.html' %}
-
 {% block content %}
-  <h1 class="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-white">All Blogs</h1>
+    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white text-center">Todos los Blogs</h1>
 
-  {% if request.GET.tag %}
-    <div class="text-center mb-4">
-      <p class="text-gray-600 dark:text-gray-300">
-        Filtrando por etiqueta:
-        <span class="font-semibold text-indigo-500">{{ request.GET.tag }}</span>
-        <a href="{% url 'blogapp:blog_list' %}" class="ml-2 text-sm text-red-500 hover:underline">(Quitar filtro)</a>
-      </p>
-    </div>
-  {% endif %}
-
-  <div class="grid gap-6">
-    {% for blog in blogs %}
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
-        
-        {% if blog.image %}
-          <img src="{{ blog.image.url }}" alt="{{ blog.title }}" class="w-full h-64 object-cover rounded-lg mb-4">
-        {% else %}
-          <p class="text-gray-500 dark:text-gray-400">Imagen no Disponible</p>
-        {% endif %}
-        
-        <h2 class="text-xl font-semibold mb-2">
-          <a href="{% url 'blogapp:blog_detail' blog.pk %}" class="text-blue-400 hover:text-blue-300">{{ blog.title }}</a>
-        </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">by {{ blog.author.username }} - {{ blog.created_at|date:"d M Y" }}</p>
-        
-        <!-- Mostrar las etiquetas del blog -->
-        <div class="mt-2">
-          <strong class="text-sm">Tags:</strong>
-          <ul class="flex flex-wrap gap-2 mt-1">
-            {% for tag in blog.tags.all %}
-              <li class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1 rounded-full text-xs">
-                <a href="{% url 'blogapp:blog_list' %}?tag={{ tag.slug }}" class="hover:text-blue-400">#{{ tag.name }}</a>
-              </li>
-            {% empty %}
-              <p class="text-gray-500 dark:text-gray-400">No tags available</p>
-            {% endfor %}
-          </ul>
+    <!-- Sección de Filtros -->
+    <div class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[200px]">
+            <label for="filter-title" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Buscar por Título:</label>
+            <input type="text" id="filter-title" placeholder="Ej. Aventura en Django"
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
         </div>
-        
-      </div>
-    {% empty %}
-      <p class="text-gray-500 dark:text-gray-400 text-center">No blogs have been posted yet.</p>
-    {% endfor %}
-  </div>
-
-  <!-- PAGINACIÓN -->
-  {% if page_obj.has_other_pages %}
-  <div class="flex justify-center mt-8">
-    <div class="inline-flex space-x-2">
-      {% if page_obj.has_previous %}
-        <a href="?page=1{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-          &laquo;
-        </a>
-        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-          Anterior
-        </a>
-      {% endif %}
-
-      {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-          <span class="px-4 py-2 bg-blue-500 text-white rounded-md">{{ num }}</span>
-        {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-          <a href="?page={{ num }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">{{ num }}</a>
-        {% endif %}
-      {% endfor %}
-
-      {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-          Siguiente
-        </a>
-        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.tag %}&tag={{ request.GET.tag }}{% endif %}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md">
-          &raquo;
-        </a>
-      {% endif %}
+        <div class="flex-1 min-w-[200px]">
+            <label for="filter-author" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Buscar por Autor:</label>
+            <input type="text" id="filter-author" placeholder="Ej. admin"
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+        </div>
+        <button id="apply-filters-btn"
+                class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-md transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+            Aplicar Filtros
+        </button>
     </div>
-  </div>
-  {% endif %}
 
-  <!-- 🔥 SECCIÓN DE ESTADÍSTICAS -->
-  <div class="mt-16">
-    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">📊 Estadísticas del Blog</h2>
 
-    <div class="grid md:grid-cols-2 gap-10">
-      <!-- Más comentados -->
-      <div>
-        <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300">🗨️ Blogs más comentados</h3>
-        <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
-          {% for blog in most_commented %}
-            <li>
-              <a href="{% url 'blogapp:blog_detail' blog.pk %}" class="text-blue-500 hover:underline">
-                {{ blog.title }}
-              </a> ({{ blog.reviews.count }} comentarios)
-            </li>
-          {% empty %}
-            <li>No hay blogs con comentarios aún.</li>
-          {% endfor %}
-        </ul>
-      </div>
-
-      <!-- Mejor puntuados -->
-      <div>
-        <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300">⭐ Blogs mejor puntuados</h3>
-        <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
-          {% for blog in top_rated %}
-            <li>
-              <a href="{% url 'blogapp:blog_detail' blog.pk %}" class="text-blue-500 hover:underline">
-                {{ blog.title }}
-              </a> (Promedio: {{ blog.avg_rating|floatformat:1 }})
-            </li>
-          {% empty %}
-            <li>No hay puntuaciones aún.</li>
-          {% endfor %}
-        </ul>
-      </div>
+    <!-- Contenedor donde JavaScript inyectará las tarjetas de blog -->
+    <div id="blog-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="loading-indicator" class="col-span-full text-center py-8">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4 mx-auto"></div>
+            <p class="text-gray-600 dark:text-gray-400">Cargando blogs...</p>
+        </div>
+        <div id="error-message" class="col-span-full text-center py-8 text-red-500 hidden">
+            <p>Lo sentimos, no pudimos cargar los blogs. Inténtalo de nuevo más tarde.</p>
+        </div>
+        <div id="no-blogs-message" class="col-span-full text-center py-8 text-gray-400 hidden">
+             <p>No se encontraron blogs con los filtros aplicados.</p>
+        </div>
     </div>
-  </div>
 
+    <!-- Controles de Paginación -->
+    <div class="mt-8 flex justify-between items-center">
+        <button id="prev-page-btn" disabled
+                class="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Anterior
+        </button>
+        <span id="page-info" class="text-gray-700 dark:text-gray-300"></span>
+        <button id="next-page-btn" disabled
+                class="px-4 py-2 bg-blue-500 dark:bg-blue-700 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Siguiente
+        </button>
+    </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+    <script>
+        // Variables para gestionar el estado de la paginación
+        let currentPageCursor = null; // Guarda el cursor del primer elemento de la página actual
+        let nextPageCursor = null; // Guarda el cursor del último elemento de la página actual
+        let hasNextPage = false;
+        let hasPreviousPage = false;
+        const blogsPerPage = 6; // Cuántos blogs mostrar por página
+
+        // Elementos del DOM
+        const blogCardsContainer = document.getElementById('blog-cards-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const noBlogsMessage = document.getElementById('no-blogs-message');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const pageInfoSpan = document.getElementById('page-info');
+        const filterTitleInput = document.getElementById('filter-title');
+        const filterAuthorInput = document.getElementById('filter-author');
+        const applyFiltersBtn = document.getElementById('apply-filters-btn');
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchBlogs(); // Carga inicial de blogs
+
+            // Event Listeners para paginación
+            prevPageBtn.addEventListener('click', () => {
+                // Cuando vamos a la página anterior, queremos los 'blogsPerPage' elementos ANTES de 'currentPageCursor'
+                fetchBlogs({ last: blogsPerPage, before: currentPageCursor });
+            });
+            nextPageBtn.addEventListener('click', () => {
+                // Cuando vamos a la página siguiente, queremos los 'blogsPerPage' elementos DESPUÉS de 'nextPageCursor'
+                fetchBlogs({ first: blogsPerPage, after: nextPageCursor });
+            });
+
+            // Event Listener para filtros
+            applyFiltersBtn.addEventListener('click', () => {
+                // Reinicia la paginación al aplicar nuevos filtros
+                currentPageCursor = null;
+                nextPageCursor = null;
+                fetchBlogs();
+            });
+
+            // También puedes agregar un event listener para "Enter" en los campos de filtro
+            filterTitleInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') applyFiltersBtn.click();
+            });
+            filterAuthorInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') applyFiltersBtn.click();
+            });
+        });
+
+
+        async function fetchBlogs(paginationArgs = {}) {
+            loadingIndicator.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            noBlogsMessage.classList.add('hidden');
+            blogCardsContainer.innerHTML = ''; // Limpia el contenedor, luego se agregará el cargador
+            blogCardsContainer.appendChild(loadingIndicator); // Asegura que el cargador esté visible
+
+            // Recoger valores de filtro
+            const titleFilter = filterTitleInput.value.trim();
+            const authorFilter = filterAuthorInput.value.trim();
+
+            let filterArgs = {};
+            if (titleFilter) {
+                filterArgs.title_Icontains = titleFilter; // 'Icontains' es una búsqueda insensible a mayúsculas/minúsculas
+            }
+            if (authorFilter) {
+                filterArgs.author_Username_Icontains = authorFilter; // 'author__username_Icontains' para campos relacionados
+            }
+
+            // Construir la cadena de argumentos para la query GraphQL
+            // Combina paginación y filtros
+            const argsList = [];
+            for (const key in paginationArgs) {
+                if (paginationArgs[key] !== null) {
+                    argsList.push(`${key}: "${paginationArgs[key]}"`);
+                }
+            }
+            for (const key in filterArgs) {
+                if (filterArgs[key]) {
+                    argsList.push(`${key}: "${filterArgs[key]}"`);
+                }
+            }
+            const graphqlArgs = argsList.length > 0 ? `(${argsList.join(', ')})` : '';
+
+
+            const query = `
+                query GetBlogs${graphqlArgs} {
+                    allBlogs${graphqlArgs} {
+                        edges {
+                            cursor
+                            node {
+                                id
+                                title
+                                content
+                                imageUrl: image
+                                createdAt
+                                author {
+                                    username
+                                }
+                                reviews {
+                                    totalCount
+                                }
+                            }
+                        }
+                        pageInfo {
+                            endCursor
+                            startCursor
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch('/graphql/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+
+                if (result.errors) {
+                    console.error('Errores de GraphQL:', result.errors);
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                const blogsConnection = result.data.allBlogs;
+                const blogs = blogsConnection.edges;
+                const pageInfo = blogsConnection.pageInfo;
+
+                // Actualizar el estado de la paginación
+                currentPageCursor = blogs.length > 0 ? blogs[0].cursor : null;
+                nextPageCursor = pageInfo.endCursor;
+                hasNextPage = pageInfo.hasNextPage;
+                hasPreviousPage = pageInfo.hasPreviousPage;
+
+                // Actualizar el estado de los botones de paginación
+                prevPageBtn.disabled = !hasPreviousPage;
+                nextPageBtn.disabled = !hasNextPage;
+
+
+                if (blogs.length === 0) {
+                    noBlogsMessage.classList.remove('hidden');
+                    pageInfoSpan.textContent = ''; // Limpiar info de página
+                    return;
+                }
+
+                // Generar el HTML para cada tarjeta de blog
+                let blogsHtml = '';
+                blogs.forEach(({ node: blog }) => {
+                    const imageUrl = blog.imageUrl || 'https://placehold.co/400x200/cccccc/333333?text=Imagen+No+Disp.';
+                    const commentsCount = blog.reviews ? blog.reviews.totalCount : 0;
+                    const truncatedContent = blog.content.length > 100 ? blog.content.substring(0, 97) + '...' : blog.content;
+
+                    blogsHtml += `
+                        <div class="blog-card bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md transition-transform duration-200">
+                            <div class="relative">
+                                <img src="${imageUrl}" alt="${blog.title}" class="w-full h-48 object-cover rounded-t-md">
+                                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-40 text-white p-2 rounded-b-md">
+                                    <h2 class="text-xl font-semibold">${blog.title}</h2>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-gray-700 dark:text-gray-300 mb-2">${truncatedContent}</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        ${commentsCount} Comentarios
+                                    </p>
+                                    <a href="/blog/${blog.id}/" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold transition-colors duration-300">
+                                        Leer más →
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                blogCardsContainer.innerHTML = blogsHtml;
+                pageInfoSpan.textContent = `Mostrando ${blogs.length} blogs`; // Opcional: mostrar un conteo
+            } catch (networkError) {
+                console.error('Error de red al cargar blogs:', networkError);
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+    </script>
 {% endblock %}

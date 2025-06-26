@@ -1,70 +1,391 @@
 {% extends 'blogapp/base.html' %}
 {% block content %}
-{% if messages %}
-  {% for message in messages %}
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-      {{ message }}
-    </div>
-  {% endfor %}
-{% endif %}
-
-  <article class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
-    <h1 class="text-3xl font-bold mb-2">{{ object.title }}</h1>
-
-    {% if object.image %}
-      <img src="{{ object.image.url }}" alt="Featured image for {{ object.title }}" class="w-full h-auto mb-4 rounded-lg">
+    {# Mensajes de Django (se mantienen) #}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {{ message }}
+            </div>
+        {% endfor %}
     {% endif %}
 
-    <p class="text-gray-700 dark:text-gray-300 mb-4">{{ object.content }}</p>
-    <p class="text-sm text-gray-600 dark:text-gray-500">By {{ object.author.username }} - {{ object.created_at }}</p>
-
-    <!-- Promedio de calificaciones en forma de estrellas -->
-    <div class="mt-4">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Average Rating:</h3>
-      <div class="flex items-center">
-        {% for i in "12345"|make_list %}
-          {% if forloop.counter <= average %}
-            <span class="text-yellow-400 text-2xl">★</span>
-          {% else %}
-            <span class="text-gray-300 text-2xl">☆</span>
-          {% endif %}
-        {% endfor %}
-        <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">({{ average }}/5)</span>
-      </div>
-    </div>    
-  </article>
-
-  <section class="mt-8">
-    <h2 class="text-2xl font-semibold mb-4">Reviews</h2>
-    {% for review in object.reviews.all %}
-      <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4 transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
-        <p class="text-blue-700 dark:text-blue-300 font-medium">{{ review.reviewer.username }}:</p>
-        
-        <!-- Mostrar estrellas individuales de cada reseña -->
-        <div class="flex items-center mb-1">
-          {% for i in "12345"|make_list %}
-            {% if forloop.counter <= review.rating %}
-              <span class="text-yellow-400 text-lg">★</span>
-            {% else %}
-              <span class="text-gray-300 text-lg">☆</span>
-            {% endif %}
-          {% endfor %}
-          <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">({{ review.rating }}/5)</span>
+    <!-- Contenedor principal donde se inyectará el contenido del blog -->
+    <div id="blog-detail-container" class="animate-fade-in">
+        <div id="loading-indicator" class="text-center py-8">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4 mx-auto"></div>
+            <p class="text-gray-600 dark:text-gray-400">Cargando detalles del blog...</p>
         </div>
+        <div id="error-message" class="text-center py-8 text-red-500 hidden">
+            <p>Lo sentimos, no pudimos cargar los detalles del blog. El blog podría no existir o hay un problema de conexión.</p>
+        </div>
+        {# Mensajes de éxito/error de JavaScript para operaciones de edición/eliminación #}
+        <div id="js-messages" class="hidden p-4 rounded mb-4" role="alert"></div>
+    </div>
 
-        <p class="text-gray-700 dark:text-gray-300">{{ review.comment }}</p>
-        <a href="{% url 'blogapp:add_comment' blog_pk=object.pk review_pk=review.pk %}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mt-2 inline-block">Add Comment</a>
-        <ul class="mt-2 list-disc ml-6 text-gray-600 dark:text-gray-400">
-          {% for comment in review.comments.all %}
-            <li><span class="font-semibold text-gray-900 dark:text-white">{{ comment.commenter.username }}</span>: {{ comment.content }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% empty %}
-      <p class="text-gray-400">No reviews yet. Be the first to add one.</p>
-    {% endfor %}
+    <!-- Enlace para añadir reseña (siempre visible) -->
+    <a id="add-review-link" href="#" class="mt-8 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors hidden">Agregar reseña</a>
 
-    <a href="{% url 'blogapp:add_review' object.pk %}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">Add Review</a>
-  </section>
+{% endblock %}
 
+{% block extra_scripts %}
+    <script>
+        // Esta variable se necesita en el JS para saber el ID del usuario actual.
+        // Asumimos que `request.user.id` está disponible en el contexto de Django para esta plantilla.
+        // Si no lo está, necesitaríamos una query GraphQL para obtenerlo o pasarlo de otra forma.
+        const currentUserId = "{{ request.user.id }}"; // Importante: Asegúrate de que request.user.id esté disponible aquí.
+
+        document.addEventListener('DOMContentLoaded', fetchBlogDetails);
+
+        function getBlogIdFromUrl() {
+            const pathSegments = window.location.pathname.split('/');
+            const blogId = pathSegments.filter(segment => segment !== '').pop();
+            return blogId;
+        }
+
+        function displayJsMessage(message, type) {
+            const jsMessages = document.getElementById('js-messages');
+            jsMessages.textContent = message;
+            jsMessages.className = `p-4 rounded mb-4 ${type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            jsMessages.classList.remove('hidden');
+            setTimeout(() => { jsMessages.classList.add('hidden'); }, 5000); // Ocultar después de 5 segundos
+        }
+
+        async function fetchBlogDetails() {
+            const blogDetailContainer = document.getElementById('blog-detail-container');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            const addReviewLink = document.getElementById('add-review-link');
+
+            loadingIndicator.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            blogDetailContainer.innerHTML = ''; // Limpia el contenedor, luego se agregará el cargador
+            blogDetailContainer.appendChild(loadingIndicator); // Asegura que el cargador esté visible
+
+            const blogId = getBlogIdFromUrl();
+            if (!blogId) {
+                errorMessage.classList.remove('hidden');
+                errorMessage.querySelector('p').textContent = 'ID del blog no encontrado en la URL.';
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            const query = `
+                query GetBlogDetails($id: ID!) {
+                    blog(id: $id) {
+                        id
+                        title
+                        content
+                        imageUrl: image
+                        createdAt
+                        author {
+                            id # Necesitamos el ID del autor
+                            username
+                        }
+                        averageRating
+                        reviews {
+                            edges {
+                                node {
+                                    id
+                                    rating
+                                    comment
+                                    createdAt
+                                    reviewer {
+                                        id # Necesitamos el ID del reseñador
+                                        username
+                                    }
+                                    comments {
+                                        edges {
+                                            node {
+                                                id
+                                                content
+                                                createdAt
+                                                commenter {
+                                                    id # Necesitamos el ID del comentador
+                                                    username
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch('/graphql/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query,
+                        variables: { id: blogId }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.errors || !result.data || !result.data.blog) {
+                    console.error('Errores de GraphQL:', result.errors || 'Blog no encontrado');
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                const blog = result.data.blog;
+
+                // --- Generar HTML del Artículo del Blog ---
+                const imageUrl = blog.imageUrl || 'https://placehold.co/800x400/cccccc/333333?text=Imagen+No+Disp.';
+                // Botones de acción para el blog (Editar/Eliminar)
+                const blogActionButtons = currentUserId && blog.author.id === currentUserId ? `
+                    <div class="mt-4 flex gap-2">
+                        <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded transition-colors" onclick="alert('Funcionalidad de editar blog (no implementada aún en frontend). Blog ID: ${blog.id}')">Editar Blog</button>
+                        <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors" onclick="deleteBlog('${blog.id}')">Eliminar Blog</button>
+                    </div>
+                ` : '';
+
+                const blogHtml = `
+                    <article class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
+                        <h1 class="text-3xl font-bold mb-2">${blog.title}</h1>
+
+                        ${blog.imageUrl ? `<img src="${imageUrl}" alt="Imagen destacada de ${blog.title}" class="w-full h-auto mb-4 rounded-lg">` : ''}
+
+                        <p class="text-gray-700 dark:text-gray-300 mb-4">${blog.content || ''}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-500">Por ${blog.author.username} - ${new Date(blog.createdAt).toLocaleDateString()}</p>
+
+                        <div class="mt-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Calificación promedio:</h3>
+                            <div class="flex items-center">
+                                ${Array(5).fill(0).map((_, i) => `
+                                    <span class="${i < Math.round(blog.averageRating) ? 'text-yellow-400' : 'text-gray-300'} text-2xl">★</span>
+                                `).join('')}
+                                <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">(${blog.averageRating}/5)</span>
+                            </div>
+                        </div>
+                        ${blogActionButtons}
+                    </article>
+                `;
+
+                // --- Generar HTML de la Sección de Reseñas ---
+                let reviewsHtml = `
+                    <section class="mt-8">
+                        <h2 class="text-2xl font-semibold mb-4">Reseñas</h2>
+                `;
+
+                if (blog.reviews && blog.reviews.edges.length > 0) {
+                    reviewsHtml += blog.reviews.edges.map(({ node: review }) => {
+                        const reviewStars = Array(5).fill(0).map((_, i) => `
+                            <span class="${i < review.rating ? 'text-yellow-400' : 'text-gray-300'} text-lg">★</span>
+                        `).join('');
+
+                        let commentsListHtml = '';
+                        if (review.comments && review.comments.edges.length > 0) {
+                            commentsListHtml += `<ul class="mt-2 list-disc ml-6 text-gray-600 dark:text-gray-400">`;
+                            commentsListHtml += review.comments.edges.map(({ node: comment }) => {
+                                const commentActionButtons = currentUserId && comment.commenter.id === currentUserId ? `
+                                    <div class="flex gap-2 text-sm mt-1">
+                                        <button class="text-blue-500 hover:text-blue-700" onclick="alert('Editar Comentario ID: ${comment.id}')">Editar</button>
+                                        <button class="text-red-500 hover:text-red-700" onclick="deleteComment('${comment.id}')">Eliminar</button>
+                                    </div>
+                                ` : '';
+                                return `
+                                    <li>
+                                        <span class="font-semibold text-gray-900 dark:text-white">${comment.commenter.username}</span>: ${comment.content || ''}
+                                        ${commentActionButtons}
+                                    </li>
+                                `;
+                            }).join('');
+                            commentsListHtml += `</ul>`;
+                        }
+
+                        const addCommentUrl = `/blog/${blog.id}/review/${review.id}/comment/`;
+                        const reviewActionButtons = currentUserId && review.reviewer.id === currentUserId ? `
+                            <div class="mt-2 flex gap-2">
+                                <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 text-sm rounded transition-colors" onclick="alert('Funcionalidad de editar reseña (no implementada aún en frontend). Reseña ID: ${review.id}')">Editar Reseña</button>
+                                <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-sm rounded transition-colors" onclick="deleteReview('${review.id}')">Eliminar Reseña</button>
+                            </div>
+                        ` : '';
+
+
+                        return `
+                            <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4 transition-all duration-700 ease-in-out dark:text-white text-gray-900 animate-fade-in">
+                                <p class="text-blue-700 dark:text-blue-300 font-medium">${review.reviewer.username}:</p>
+
+                                <div class="flex items-center mb-1">
+                                    ${reviewStars}
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">(${review.rating}/5)</span>
+                                </div>
+
+                                <p class="text-gray-700 dark:text-gray-300">${review.comment || ''}</p>
+                                ${reviewActionButtons}
+                                <a href="${addCommentUrl}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mt-2 inline-block">Agregar comentario</a>
+                                ${commentsListHtml}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    reviewsHtml += `<p class="text-gray-400">No hay reseñas todavía. Sé el primero en agregar una.</p>`;
+                }
+                reviewsHtml += `</section>`;
+
+                const addReviewUrl = `/blog/${blog.id}/review/add/`;
+                addReviewLink.setAttribute('href', addReviewUrl);
+                addReviewLink.classList.remove('hidden');
+
+                blogDetailContainer.innerHTML = blogHtml + reviewsHtml;
+
+            } catch (networkError) {
+                console.error('Error de red al cargar el detalle del blog:', networkError);
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // --- Funciones para Eliminar (Llamadas desde los botones) ---
+
+        async function deleteBlog(blogId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este blog?')) {
+                return;
+            }
+
+            const mutation = `
+                mutation DeleteBlogMutation($id: ID!) {
+                    deleteBlog(id: $id) {
+                        success
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch('/graphql/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: mutation,
+                        variables: { id: blogId }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.errors) {
+                    console.error('Errores de GraphQL:', result.errors);
+                    displayJsMessage(`Error al eliminar blog: ${result.errors[0].message}`, 'error');
+                } else if (result.data.deleteBlog.success) {
+                    displayJsMessage('Blog eliminado con éxito.', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/blogs/'; // Redirigir a la lista de blogs
+                    }, 1500);
+                } else {
+                    displayJsMessage('Error desconocido al eliminar el blog.', 'error');
+                }
+            } catch (networkError) {
+                console.error('Error de red al eliminar blog:', networkError);
+                displayJsMessage('Error de conexión al eliminar el blog.', 'error');
+            }
+        }
+
+        async function deleteReview(reviewId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta reseña?')) {
+                return;
+            }
+
+            const mutation = `
+                mutation DeleteReviewMutation($id: ID!) {
+                    deleteReview(id: $id) {
+                        success
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch('/graphql/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: mutation,
+                        variables: { id: reviewId }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.errors) {
+                    console.error('Errores de GraphQL:', result.errors);
+                    displayJsMessage(`Error al eliminar reseña: ${result.errors[0].message}`, 'error');
+                } else if (result.data.deleteReview.success) {
+                    displayJsMessage('Reseña eliminada con éxito.', 'success');
+                    // Recargar los detalles del blog para reflejar el cambio
+                    setTimeout(fetchBlogDetails, 1500);
+                } else {
+                    displayJsMessage('Error desconocido al eliminar la reseña.', 'error');
+                }
+            } catch (networkError) {
+                console.error('Error de red al eliminar reseña:', networkError);
+                displayJsMessage('Error de conexión al eliminar la reseña.', 'error');
+            }
+        }
+
+        async function deleteComment(commentId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este comentario?')) {
+                return;
+            }
+
+            const mutation = `
+                mutation DeleteCommentMutation($id: ID!) {
+                    deleteComment(id: $id) {
+                        success
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch('/graphql/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: mutation,
+                        variables: { id: commentId }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.errors) {
+                    console.error('Errores de GraphQL:', result.errors);
+                    displayJsMessage(`Error al eliminar comentario: ${result.errors[0].message}`, 'error');
+                } else if (result.data.deleteComment.success) {
+                    displayJsMessage('Comentario eliminado con éxito.', 'success');
+                    // Recargar los detalles del blog para reflejar el cambio
+                    setTimeout(fetchBlogDetails, 1500);
+                } else {
+                    displayJsMessage('Error desconocido al eliminar el comentario.', 'error');
+                }
+            } catch (networkError) {
+                console.error('Error de red al eliminar comentario:', networkError);
+                displayJsMessage('Error de conexión al eliminar el comentario.', 'error');
+            }
+        }
+
+        // Función auxiliar para obtener el token CSRF (ya la tienes)
+        function getCsrfToken() {
+            const csrfTokenElement = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            return csrfTokenElement ? csrfTokenElement.value : '';
+        }
+    </script>
 {% endblock %}
